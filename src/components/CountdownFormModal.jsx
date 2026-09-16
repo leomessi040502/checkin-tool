@@ -64,6 +64,7 @@ function CountdownFormModal({
           .insert({
             title: title.trim(),
             target_date: targetDate,
+            type: 'shared',
             creator_id: currentUserId,
           }))
         if (insertError) throw insertError
