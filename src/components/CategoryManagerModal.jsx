@@ -83,15 +83,11 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
     const startTime = Date.now()
 
     try {
-      const maxSort = categories.length > 0
-        ? Math.max(...categories.map((c) => c.sort_order || 0))
-        : 0
       const { error: insertError } = await withTimeoutToast(supabase
         .from('categories')
         .insert({
           name: trimmed,
           icon: newIcon,
-          sort_order: maxSort + 1,
           creator_id: userId,
         }))
       if (insertError) throw insertError

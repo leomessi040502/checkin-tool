@@ -75,8 +75,8 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     try {
       const { data, error: catError } = await withTimeoutToast(supabase
         .from('categories')
-        .select('id, name, icon, sort_order')
-        .order('sort_order', { ascending: true }))
+        .select('id, name, icon')
+        .order('created_at', { ascending: true }))
       if (catError) throw catError
       setCategories(data || [])
     } catch {

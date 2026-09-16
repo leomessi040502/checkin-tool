@@ -40,7 +40,7 @@ function StatsPage() {
         const [checkinsRes, profilesRes, categoriesRes] = await Promise.all([
           withTimeoutToast(supabase.from('checkins').select('id, user_id, category_id, checkin_date, note, created_at')),
           withTimeoutToast(supabase.from('profiles').select('id, username')),
-          withTimeoutToast(supabase.from('categories').select('id, name, icon, sort_order').order('sort_order', { ascending: true })),
+          withTimeoutToast(supabase.from('categories').select('id, name, icon').order('created_at', { ascending: true })),
         ])
         if (!checkinsRes.error && checkinsRes.data) setCheckins(checkinsRes.data)
         if (!profilesRes.error && profilesRes.data) setProfiles(profilesRes.data)
