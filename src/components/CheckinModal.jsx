@@ -60,7 +60,6 @@ export default function CheckinModal({ isOpen, onClose, category, mode, existing
           .insert({
             user_id: user.id,
             category_id: category.id,
-            category: category.name,
             checkin_date: todayStr,
             note: trimmedNote,
           }))
