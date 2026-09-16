@@ -23,7 +23,7 @@ async function fetchGoalProgress(goal) {
 /** 计算有效状态（用于显示） */
 function getEffectiveStatus(goal, currentCount) {
   if (goal.status !== 'active') return goal.status
-  if (currentCount >= goal.target_count) return 'completed'
+  if (goal.target_count && currentCount >= goal.target_count) return 'completed'
   if (goal.type === 'periodic' && goal.end_date && getDaysRemaining(goal.end_date) < 0) {
     return 'expired'
   }

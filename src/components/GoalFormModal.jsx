@@ -93,17 +93,18 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     if (!categoryId) {
       return '请选择分类'
     }
-    const count = parseInt(targetCount, 10)
-    if (!targetCount || isNaN(count) || count < 1) {
+    // 目标次数：可空，若填写必须为正整数
+    const count = targetCount ? parseInt(targetCount, 10) : null
+    if (targetCount && (isNaN(count) || count < 1)) {
       return '请输入有效的目标次数'
     }
-    if (type === 'periodic') {
-      if (!endDate) {
-        return '请选择截止日期'
-      }
-      if (endDate <= startDate) {
-        return '截止日期必须晚于起始日期'
-      }
+    // 截止日期：可空，若填写必须晚于起始日期
+    if (endDate && endDate <= startDate) {
+      return '截止日期必须晚于起始日期'
+    }
+    // 目标次数和截止日期至少填一个
+    if (!count && !endDate) {
+      return '目标次数和截止日期至少填写一个'
     }
     return null
   }
@@ -123,13 +124,14 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     const startTime = Date.now()
 
     try {
+      const count = targetCount ? parseInt(targetCount, 10) : null
       const payload = {
         title: title.trim(),
         category_id: categoryId,
         type,
-        target_count: parseInt(targetCount, 10),
+        target_count: count,
         start_date: startDate,
-        end_date: type === 'periodic' ? endDate : null,
+        end_date: endDate || null,
       }
 
       if (isEdit) {
@@ -265,7 +267,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
           {/* 目标次数 */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              目标次数
+              目标次数 <span className="text-xs font-normal text-gray-400">（选填）</span>
             </label>
             <input
               type="number"
@@ -290,21 +292,20 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
             />
           </div>
 
-          {/* 截止日期 - 仅周期目标显示 */}
-          {type === 'periodic' && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                截止日期
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                min={startDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
-              />
-            </div>
-          )}
+          {/* 截止日期 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              截止日期 <span className="text-xs font-normal text-gray-400">（选填）</span>
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+            />
+            <p className="mt-1 text-xs text-gray-400">目标次数和截止日期至少填写一个</p>
+          </div>
 
           {/* 错误提示 */}
           {error && <p className="text-center text-sm text-red-500">{error}</p>}

@@ -16,8 +16,9 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
   const statusStyle = STATUS_STYLES[goal.status] || STATUS_STYLES.active
   const isDimmed = goal.status === 'completed' || goal.status === 'expired'
 
+  const hasTarget = !!goal.target_count
   const target = goal.target_count || 1
-  const percent = Math.min(100, Math.round((currentCount / target) * 100))
+  const percent = hasTarget ? Math.min(100, Math.round((currentCount / target) * 100)) : 0
 
   const daysLeft = goal.end_date ? getDaysRemaining(goal.end_date) : null
 
@@ -68,20 +69,22 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
               isDimmed ? 'text-gray-400' : 'text-gray-700'
             }`}
           >
-            {currentCount}/{target}
+            {hasTarget ? `${currentCount}/${target}` : `${currentCount}次`}
           </span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-          <div
-            className={`h-full rounded-full transition-all ${
-              isDimmed
-                ? 'bg-gray-300'
-                : percent >= 100
-                  ? 'bg-green-500'
-                  : 'bg-primary-500'
-            }`}
-            style={{ width: `${percent}%` }}
-          />
+        <div className={`h-2 w-full overflow-hidden rounded-full ${hasTarget ? 'bg-gray-100' : 'bg-transparent'}`}>
+          {hasTarget && (
+            <div
+              className={`h-full rounded-full transition-all ${
+                isDimmed
+                  ? 'bg-gray-300'
+                  : percent >= 100
+                    ? 'bg-green-500'
+                    : 'bg-primary-500'
+              }`}
+              style={{ width: `${percent}%` }}
+            />
+          )}
         </div>
       </div>
 
