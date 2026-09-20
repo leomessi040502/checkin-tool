@@ -161,8 +161,41 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  /** 注销账号（需要密码验证）
+   *  1. 用 signInWithPassword 验证密码
+   *  2. 调用 RPC delete_own_account 删除 auth.users 记录（级联清理所有数据）
+   *  3. signOut 清理本地状态
+   */
+  const deleteAccount = async (password) => {
+    if (!user) throw new Error('未登录')
+    if (!password) throw new Error('PASSWORD_REQUIRED')
+
+    // 1. 验证密码（通过重新登录）
+    const { error: signInError } = await withTimeoutToast(
+      supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+      })
+    )
+    if (signInError) throw new Error('PASSWORD_INCORRECT')
+
+    // 2. 调用 RPC 删除账号（级联清理所有数据）
+    const { error: deleteError } = await withTimeoutToast(
+      supabase.rpc('delete_own_account')
+    )
+    if (deleteError) throw deleteError
+
+    // 3. 清理本地状态
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // 账号已删除，signOut 失败可忽略
+    }
+    setUser(null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, getCurrentUser, updateUsername, updatePassword }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, getCurrentUser, updateUsername, updatePassword, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )

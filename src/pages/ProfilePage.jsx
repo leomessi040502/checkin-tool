@@ -6,7 +6,7 @@ import { withTimeoutToast } from '../utils/apiWrapper'
 import { formatChineseDate } from '../utils/date'
 
 function ProfilePage() {
-  const { user, signOut, updateUsername, updatePassword } = useAuth()
+  const { user, signOut, updateUsername, updatePassword, deleteAccount } = useAuth()
   const navigate = useNavigate()
 
   const [stats, setStats] = useState({ total: 0, byCategory: {} })
@@ -28,6 +28,12 @@ function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [updatingPassword, setUpdatingPassword] = useState(false)
+
+  // 注销账号状态
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   /** 查询当前用户的打卡统计（总数 + 各分类次数） */
   const fetchStats = useCallback(async () => {
@@ -163,6 +169,32 @@ function ProfilePage() {
     }
   }
 
+  /** 注销账号 */
+  const handleDeleteAccount = async () => {
+    setDeleteError('')
+
+    if (!deletePassword) {
+      setDeleteError('请输入密码')
+      return
+    }
+
+    setDeletingAccount(true)
+    try {
+      await deleteAccount(deletePassword)
+      // 账号已删除，跳转登录页
+      setShowDeleteModal(false)
+      navigate('/login', { replace: true })
+    } catch (err) {
+      if (err.message === 'PASSWORD_INCORRECT') {
+        setDeleteError('密码错误，请重新输入')
+      } else {
+        setDeleteError('注销失败，请重试')
+      }
+    } finally {
+      setDeletingAccount(false)
+    }
+  }
+
   return (
     <div className="px-4 py-6">
       {/* 用户信息卡片 */}
@@ -242,6 +274,15 @@ function ProfilePage() {
         className="w-full rounded-lg border border-red-200 bg-white py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
       >
         退出登录
+      </button>
+
+      {/* 注销账号按钮 */}
+      <button
+        type="button"
+        onClick={() => { setDeletePassword(''); setDeleteError(''); setShowDeleteModal(true) }}
+        className="mt-3 w-full py-2.5 text-center text-xs text-gray-400 underline transition-colors hover:text-red-500"
+      >
+        注销账号
       </button>
 
       {/* 退出确认弹窗 */}
@@ -370,6 +411,67 @@ function ProfilePage() {
                 className="flex-1 rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
               >
                 {updatingPassword ? '保存中…' : '确认'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 注销账号确认弹窗 */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-6"
+          onClick={() => !deletingAccount && setShowDeleteModal(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-2 text-center text-base font-bold text-red-600">
+              注销账号
+            </h3>
+            <p className="mb-3 text-center text-xs text-gray-500">
+              注销后所有数据将永久删除，不可恢复
+            </p>
+            <p className="mb-2 text-center text-xs text-gray-400">
+              打卡记录、分类、目标、倒计时都将被清除
+            </p>
+            <div className="mb-2">
+              <label className="mb-1 block text-xs text-gray-500">
+                请输入密码确认
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => { setDeletePassword(e.target.value); setDeleteError('') }}
+                maxLength={20}
+                placeholder="输入密码"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-red-500"
+              />
+            </div>
+            {deleteError && (
+              <p className="mb-2 text-center text-xs text-red-500">{deleteError}</p>
+            )}
+            <div className="mt-3 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deletingAccount}
+                className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
+                  deletingAccount
+                    ? 'cursor-not-allowed bg-red-300'
+                    : 'bg-red-500 hover:bg-red-600'
+                }`}
+              >
+                {deletingAccount ? '注销中…' : '确认注销'}
               </button>
             </div>
           </div>
