@@ -31,7 +31,7 @@ function LoginPage() {
       .select('id', { count: 'exact', head: true })
       .then(({ count }) => {
         if (!active) return
-        if (count >= 10) {
+        if (count >= 2) {
           setUserLimitReached(true)
           setError('圈子人数已满，联系成员获取账号')
         }

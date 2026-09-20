@@ -40,7 +40,7 @@ function StatsPage() {
         const [checkinsRes, profilesRes, categoriesRes] = await Promise.all([
           withTimeoutToast(supabase.from('checkins').select('id, user_id, category_id, checkin_date, note, created_at')),
           withTimeoutToast(supabase.from('profiles').select('id, username')),
-          withTimeoutToast(supabase.from('categories').select('id, name, icon').order('created_at', { ascending: true })),
+          withTimeoutToast(supabase.from('categories').select('id, name, icon, user_id').order('created_at', { ascending: true })),
         ])
         if (!checkinsRes.error && checkinsRes.data) setCheckins(checkinsRes.data)
         if (!profilesRes.error && profilesRes.data) setProfiles(profilesRes.data)
@@ -63,6 +63,16 @@ function StatsPage() {
     return map
   }, [profiles])
 
+  // 按 user_id 分组分类
+  const categoriesByUser = useMemo(() => {
+    const map = {}
+    categories.forEach((cat) => {
+      if (!map[cat.user_id]) map[cat.user_id] = []
+      map[cat.user_id].push(cat)
+    })
+    return map
+  }, [categories])
+
   // 所有用户列表（profiles 中的 + checkins 中出现但不在 profiles 中的）
   const allUserIds = useMemo(() => {
     const ids = new Set(profiles.map((p) => p.id))
@@ -78,9 +88,10 @@ function StatsPage() {
         const username = profileMap[userId] || '未知用户'
         const totalCount = userCheckins.length
 
-        // 各分类次数（动态列）
+        // 各分类次数（仅该用户自己的分类）
+        const userCats = categoriesByUser[userId] || []
         const categoryCounts = {}
-        categories.forEach((cat) => {
+        userCats.forEach((cat) => {
           categoryCounts[cat.id] = 0
         })
         userCheckins.forEach((c) => {
@@ -91,10 +102,10 @@ function StatsPage() {
 
         const streaks = calculateStreaks(userCheckins)
 
-        return { userId, username, totalCount, categoryCounts, streaks }
+        return { userId, username, totalCount, categoryCounts, streaks, userCategories: userCats }
       })
       .sort((a, b) => b.totalCount - a.totalCount)
-  }, [allUserIds, checkins, profileMap, categories])
+  }, [allUserIds, checkins, profileMap, categoriesByUser])
 
   // ========== 按时间统计 ==========
   const timeStats = useMemo(() => {
@@ -123,16 +134,34 @@ function StatsPage() {
     })
 
     const totalCount = filtered.length
-    // 各分类打卡次数从动态分类列表计算
-    const categoryCounts = {}
-    categories.forEach((cat) => {
-      categoryCounts[cat.id] = 0
-    })
-    filtered.forEach((c) => {
-      if (c.category_id && categoryCounts[c.category_id] !== undefined) {
-        categoryCounts[c.category_id]++
-      }
-    })
+
+    // 按用户分组统计各分类次数
+    const userBreakdown = allUserIds
+      .map((userId) => {
+        const userCats = categoriesByUser[userId] || []
+        const userFiltered = filtered.filter((c) => c.user_id === userId)
+        if (userFiltered.length === 0 && userCats.length === 0) return null
+
+        const catCounts = {}
+        userCats.forEach((cat) => {
+          catCounts[cat.id] = 0
+        })
+        userFiltered.forEach((c) => {
+          if (c.category_id && catCounts[c.category_id] !== undefined) {
+            catCounts[c.category_id]++
+          }
+        })
+
+        return {
+          userId,
+          username: profileMap[userId] || '未知用户',
+          categories: userCats,
+          counts: catCounts,
+          userTotal: userFiltered.length,
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.userTotal - a.userTotal)
 
     // 构建每日趋势数据
     const dailyCountMap = {}
@@ -157,31 +186,36 @@ function StatsPage() {
 
     const maxCount = Math.max(...days.map((day) => day.count), 1)
 
-    return { totalCount, categoryCounts, days, maxCount }
-  }, [checkins, timeRange, categories])
+    return { totalCount, userBreakdown, days, maxCount }
+  }, [checkins, timeRange, categoriesByUser, allUserIds, profileMap])
 
   // ========== 按分类统计 ==========
   const categoryStats = useMemo(() => {
-    // 动态遍历所有分类
-    return categories.map((cat) => {
-      const catCheckins = checkins.filter((c) => c.category_id === cat.id)
-      const userCountMap = {}
-      catCheckins.forEach((c) => {
-        userCountMap[c.user_id] = (userCountMap[c.user_id] || 0) + 1
-      })
+    // 按用户分组，显示各自的分类排名
+    return allUserIds
+      .map((userId) => {
+        const userCats = categoriesByUser[userId] || []
+        const userCheckins = checkins.filter((c) => c.user_id === userId)
 
-      const ranking = allUserIds
-        .map((userId) => ({
+        const catRanking = userCats
+          .map((cat) => {
+            const count = userCheckins.filter((c) => c.category_id === cat.id).length
+            return { ...cat, count }
+          })
+          .sort((a, b) => b.count - a.count)
+
+        const totalCheckins = userCheckins.length
+
+        return {
           userId,
           username: profileMap[userId] || '未知用户',
-          count: userCountMap[userId] || 0,
-        }))
-        .filter((item) => item.count > 0)
-        .sort((a, b) => b.count - a.count)
-
-      return { ...cat, totalCount: catCheckins.length, ranking }
-    })
-  }, [checkins, categories, allUserIds, profileMap])
+          categories: catRanking,
+          totalCheckins,
+        }
+      })
+      .filter((item) => item.categories.length > 0)
+      .sort((a, b) => b.totalCheckins - a.totalCheckins)
+  }, [checkins, categoriesByUser, allUserIds, profileMap])
 
   // 空状态：无分类
   const noCategories = categories.length === 0
@@ -262,9 +296,9 @@ function StatsPage() {
                     <p className="mt-2 text-xs text-gray-400">暂无记录</p>
                   ) : (
                     <>
-                      {/* 各分类次数（动态列） */}
+                      {/* 各分类次数（仅该用户自己的分类） */}
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {categories.map((cat) => (
+                        {user.userCategories.map((cat) => (
                           <span
                             key={cat.id}
                             className="rounded bg-primary-50 px-2 py-0.5 text-xs text-primary-600"
@@ -280,7 +314,7 @@ function StatsPage() {
                           <span className="font-medium text-gray-700">
                             🔥 总连续 {user.streaks.totalStreak} 天
                           </span>
-                          {categories.map((cat) => (
+                          {user.userCategories.map((cat) => (
                             <span key={cat.id}>
                               {cat.icon} {cat.name} {user.streaks.categoryStreaks[cat.id] || 0}天
                             </span>
@@ -315,24 +349,32 @@ function StatsPage() {
                 ))}
               </div>
 
-              {/* 总次数 + 分类次数 */}
+              {/* 总次数 + 各用户分类次数 */}
               <div className="mb-4 rounded-xl bg-white p-4 shadow-sm">
                 <div className="mb-3 text-sm font-bold text-gray-900">
                   全员打卡总次数：{timeStats.totalCount}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="flex-1 rounded-lg bg-gray-50 py-2 text-center"
-                    >
-                      <div className="text-xs text-gray-500">{cat.icon} {cat.name}</div>
-                      <div className="mt-0.5 text-lg font-bold text-gray-900">
-                        {timeStats.categoryCounts[cat.id] || 0}
-                      </div>
+                {timeStats.userBreakdown.map((ub) => (
+                  <div key={ub.userId} className="mb-3 last:mb-0">
+                    <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-600">
+                      <span className="font-medium text-gray-700">{ub.username}</span>
+                      <span className="text-gray-400">{ub.userTotal} 次</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex flex-wrap gap-2">
+                      {ub.categories.map((cat) => (
+                        <div
+                          key={cat.id}
+                          className="flex-1 rounded-lg bg-gray-50 py-2 text-center"
+                        >
+                          <div className="text-xs text-gray-500">{cat.icon} {cat.name}</div>
+                          <div className="mt-0.5 text-lg font-bold text-gray-900">
+                            {ub.counts[cat.id] || 0}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* 每日打卡趋势图 */}
@@ -385,33 +427,33 @@ function StatsPage() {
           {/* ===== 按分类 ===== */}
           {activeTab === 'category' && (
             <div className="space-y-4">
-              {categoryStats.map((cat) => (
-                <div key={cat.id} className="rounded-xl bg-white p-4 shadow-sm">
+              {categoryStats.map((userItem) => (
+                <div key={userItem.userId} className="rounded-xl bg-white p-4 shadow-sm">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="text-lg">{cat.icon}</span>
-                    <span className="font-bold text-gray-900">{cat.name}</span>
+                    <span className="font-bold text-gray-900">{userItem.username}</span>
                     <span className="ml-auto text-sm text-gray-500">
-                      总计 {cat.totalCount} 次
+                      总打卡 {userItem.totalCheckins} 次
                     </span>
                   </div>
 
-                  {cat.ranking.length === 0 ? (
-                    <p className="py-2 text-xs text-gray-400">暂无记录</p>
+                  {userItem.categories.length === 0 ? (
+                    <p className="py-2 text-xs text-gray-400">暂无分类</p>
                   ) : (
                     <div className="space-y-2">
-                      {cat.ranking.map((item, idx) => (
+                      {userItem.categories.map((cat, idx) => (
                         <div
-                          key={item.userId}
+                          key={cat.id}
                           className="flex items-center gap-2"
                         >
                           <span className="w-6 text-center text-sm text-gray-500">
-                            {idx === 0 ? '🥇' : idx + 1}
+                            {idx === 0 && cat.count > 0 ? '🥇' : idx + 1}
                           </span>
+                          <span className="text-lg">{cat.icon}</span>
                           <span className="flex-1 text-sm text-gray-700">
-                            {item.username}
+                            {cat.name}
                           </span>
                           <span className="text-sm font-medium text-gray-900">
-                            {item.count} 次
+                            {cat.count} 次
                           </span>
                         </div>
                       ))}

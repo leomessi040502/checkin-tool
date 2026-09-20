@@ -85,6 +85,7 @@ export default function CategoryFormModal({ isOpen, onClose, onSuccess, category
             name: trimmed,
             icon: currentIcon,
             creator_id: userId,
+            user_id: userId,
           }))
         if (insertError) throw insertError
       }

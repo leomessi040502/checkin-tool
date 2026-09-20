@@ -20,7 +20,7 @@ const TYPES = [
 function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId }) {
   const isEdit = !!initialData
   const [title, setTitle] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([])
   const [type, setType] = useState('periodic')
   const [targetCount, setTargetCount] = useState('')
   const [startDate, setStartDate] = useState(getTodayStr())
@@ -43,14 +43,16 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     if (isOpen) {
       if (initialData) {
         setTitle(initialData.title || '')
-        setCategoryId(initialData.category_id || '')
+        setSelectedCategoryIds([])
         setType(initialData.type || 'periodic')
         setTargetCount(String(initialData.target_count || ''))
         setStartDate(initialData.start_date || today)
         setEndDate(initialData.end_date || '')
+        // 编辑时异步加载已关联分类
+        fetchGoalCategories(initialData.id)
       } else {
         setTitle('')
-        setCategoryId('')
+        setSelectedCategoryIds([])
         setType('periodic')
         setTargetCount('')
         setStartDate(today)
@@ -76,11 +78,26 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
       const { data, error: catError } = await withTimeoutToast(supabase
         .from('categories')
         .select('id, name, icon')
+        .eq('user_id', currentUserId)
         .order('created_at', { ascending: true }))
       if (catError) throw catError
       setCategories(data || [])
     } catch {
       setCategories([])
+    }
+  }
+
+  // 编辑时加载已关联分类
+  const fetchGoalCategories = async (goalId) => {
+    try {
+      const { data, error: relError } = await withTimeoutToast(supabase
+        .from('goal_categories')
+        .select('category_id')
+        .eq('goal_id', goalId))
+      if (relError) throw relError
+      setSelectedCategoryIds((data || []).map((r) => r.category_id))
+    } catch {
+      setSelectedCategoryIds([])
     }
   }
 
@@ -90,8 +107,8 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     if (!title.trim()) {
       return '请输入目标名称'
     }
-    if (!categoryId) {
-      return '请选择分类'
+    if (selectedCategoryIds.length === 0) {
+      return '请至少关联一个分类'
     }
     // 目标次数：可空，若填写必须为正整数
     const count = targetCount ? parseInt(targetCount, 10) : null
@@ -102,9 +119,10 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     if (endDate && endDate <= startDate) {
       return '截止日期必须晚于起始日期'
     }
-    // 目标次数和截止日期至少填一个
-    if (!count && !endDate) {
-      return '目标次数和截止日期至少填写一个'
+    // 周期目标：目标次数和截止日期至少填一个
+    // 长期目标：都可以不填
+    if (type === 'periodic' && !count && !endDate) {
+      return '周期目标需填写目标次数或截止日期'
     }
     return null
   }
@@ -127,20 +145,19 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
       const count = targetCount ? parseInt(targetCount, 10) : null
       const payload = {
         title: title.trim(),
-        category_id: categoryId,
         type,
         target_count: count,
         start_date: startDate,
         end_date: endDate || null,
       }
 
+      let goalId
       if (isEdit) {
         // 编辑时不修改 status（status 由系统自动计算）
         const { error: updateError } = await withTimeoutToast(supabase
           .from('goals')
           .update({
             title: payload.title,
-            category_id: payload.category_id,
             type: payload.type,
             target_count: payload.target_count,
             start_date: payload.start_date,
@@ -148,14 +165,36 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
           })
           .eq('id', initialData.id))
         if (updateError) throw updateError
+        goalId = initialData.id
       } else {
-        const { error: insertError } = await withTimeoutToast(supabase
+        const { data: insertData, error: insertError } = await withTimeoutToast(supabase
           .from('goals')
           .insert({
             ...payload,
             user_id: currentUserId,
-          }))
+          })
+          .select('id')
+          .single())
         if (insertError) throw insertError
+        goalId = insertData.id
+      }
+
+      // 同步 goal_categories 关联：先删除旧的，再插入新的
+      const { error: delRelError } = await withTimeoutToast(supabase
+        .from('goal_categories')
+        .delete()
+        .eq('goal_id', goalId))
+      if (delRelError) throw delRelError
+
+      if (selectedCategoryIds.length > 0) {
+        const relRows = selectedCategoryIds.map((catId) => ({
+          goal_id: goalId,
+          category_id: catId,
+        }))
+        const { error: relInsertError } = await withTimeoutToast(supabase
+          .from('goal_categories')
+          .insert(relRows))
+        if (relInsertError) throw relInsertError
       }
 
       onSuccess()
@@ -219,21 +258,30 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCategoryId(cat.id)}
-                    className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      categoryId === cat.id
-                        ? 'border-primary-500 bg-primary-50 text-primary-600'
-                        : 'border-gray-200 text-gray-500'
-                    }`}
-                  >
-                    <span>{cat.icon}</span>
-                    <span>{cat.name}</span>
-                  </button>
-                ))}
+                {categories.map((cat) => {
+                  const selected = selectedCategoryIds.includes(cat.id)
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategoryIds((prev) =>
+                          prev.includes(cat.id)
+                            ? prev.filter((id) => id !== cat.id)
+                            : [...prev, cat.id]
+                        )
+                      }}
+                      className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                        selected
+                          ? 'border-primary-500 bg-primary-50 text-primary-600'
+                          : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.name}</span>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -304,7 +352,11 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
-            <p className="mt-1 text-xs text-gray-400">目标次数和截止日期至少填写一个</p>
+            <p className="mt-1 text-xs text-gray-400">
+              {type === 'periodic'
+                ? '周期目标：目标次数和截止日期至少填写一个'
+                : '长期目标：目标次数和截止日期均可不填'}
+            </p>
           </div>
 
           {/* 错误提示 */}

@@ -20,6 +20,7 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [existingMap, setExistingMap] = useState({})
+  const [localCategories, setLocalCategories] = useState([])
 
   const last7Days = getLast7Days()
 
@@ -47,13 +48,34 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
     }
   }, [user])
 
+  /** 查询当前用户的分类列表 */
+  const fetchCategories = useCallback(async () => {
+    if (!user) return
+    try {
+      const { data, error: queryError } = await withTimeoutToast(supabase
+        .from('categories')
+        .select('id, name, icon')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true }))
+
+      if (queryError) throw queryError
+      const cats = data || []
+      setLocalCategories(cats)
+      setSelectedCategoryId(cats[0]?.id || null)
+    } catch {
+      // 查询失败时使用 props 传入的分类作为兜底
+      setLocalCategories(categories)
+      setSelectedCategoryId(categories[0]?.id || null)
+    }
+  }, [user, categories])
+
   useEffect(() => {
     if (isOpen) {
-      setSelectedCategoryId(categories[0]?.id || null)
       setSelectedDate('')
       setNote('')
       setError('')
       setSubmitting(false)
+      fetchCategories()
       fetchExisting()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,7 +113,7 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
 
     try {
       const trimmedNote = note.trim() || null
-      const selectedCat = categories.find((c) => c.id === selectedCategoryId)
+      const selectedCat = localCategories.find((c) => c.id === selectedCategoryId)
       const { error: insertError } = await withTimeoutToast(supabase
         .from('checkins')
         .insert({
@@ -131,11 +153,11 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
         {/* 选择分类 */}
         <div className="mb-4">
           <label className="mb-2 block text-sm text-gray-600">选择分类</label>
-          {categories.length === 0 ? (
+          {localCategories.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-400">暂无分类</p>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {categories.map((cat) => (
+              {localCategories.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"

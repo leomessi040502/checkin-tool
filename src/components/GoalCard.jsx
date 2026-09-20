@@ -11,7 +11,7 @@ const STATUS_STYLES = {
   expired: { label: '已过期', bg: 'bg-gray-100', text: 'text-gray-500' },
 }
 
-function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUsername, categoryName, categoryIcon }) {
+function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUsername, todayCompleted = 0, todayTotal = 0, relatedCategories = [] }) {
   const typeLabel = TYPE_LABELS[goal.type] || goal.type
   const statusStyle = STATUS_STYLES[goal.status] || STATUS_STYLES.active
   const isDimmed = goal.status === 'completed' || goal.status === 'expired'
@@ -21,6 +21,25 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
   const percent = hasTarget ? Math.min(100, Math.round((currentCount / target) * 100)) : 0
 
   const daysLeft = goal.end_date ? getDaysRemaining(goal.end_date) : null
+
+  // 当日完成状态
+  let todayStatus = null
+  if (todayTotal > 0) {
+    if (todayCompleted === todayTotal) {
+      todayStatus = { icon: '✅', label: `完成(${todayCompleted}/${todayTotal})` }
+    } else if (todayCompleted === 0) {
+      todayStatus = { icon: '❌', label: `未开始(0/${todayTotal})` }
+    } else {
+      todayStatus = { icon: '⚠️', label: `部分完成(${todayCompleted}/${todayTotal})` }
+    }
+  } else {
+    todayStatus = { icon: '📌', label: '未关联分类' }
+  }
+
+  // 分类标签：最多显示3个，超出显示 +N
+  const maxVisible = 3
+  const visibleCats = relatedCategories.slice(0, maxVisible)
+  const overflowCount = relatedCategories.length - maxVisible
 
   return (
     <div
@@ -46,10 +65,18 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
             </p>
           )}
         </div>
-        <div className="flex shrink-0 gap-1">
-          {categoryName && (
-            <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">
-              {categoryIcon} {categoryName}
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          {visibleCats.map((cat) => (
+            <span
+              key={cat.id}
+              className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600"
+            >
+              {cat.icon} {cat.name}
+            </span>
+          ))}
+          {overflowCount > 0 && (
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+              +{overflowCount}
             </span>
           )}
           <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
@@ -86,6 +113,13 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
             />
           )}
         </div>
+      </div>
+
+      {/* 当日完成状态 */}
+      <div className="mt-2 flex items-center gap-1 text-xs">
+        <span className={isDimmed ? 'text-gray-400' : 'text-gray-500'}>
+          {todayStatus.icon} {todayStatus.label}
+        </span>
       </div>
 
       {/* 底部：日期 + 状态 + 操作 */}

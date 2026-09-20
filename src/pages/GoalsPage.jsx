@@ -6,20 +6,6 @@ import { getTodayStr, getDaysRemaining } from '../utils/date'
 import GoalCard from '../components/GoalCard'
 import GoalFormModal from '../components/GoalFormModal'
 
-/** 查询单个目标的打卡进度（通过 category_id 关联 checkins 表） */
-async function fetchGoalProgress(goal) {
-  const todayStr = getTodayStr()
-  const endDate = goal.end_date || todayStr
-  const { count } = await withTimeoutToast(supabase
-    .from('checkins')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', goal.user_id)
-    .eq('category_id', goal.category_id)
-    .gte('checkin_date', goal.start_date)
-    .lte('checkin_date', endDate))
-  return count || 0
-}
-
 /** 计算有效状态（用于显示） */
 function getEffectiveStatus(goal, currentCount) {
   if (goal.status !== 'active') return goal.status
@@ -35,7 +21,9 @@ function GoalsPage() {
   const [goals, setGoals] = useState([])
   const [usernameMap, setUsernameMap] = useState({})
   const [categoryMap, setCategoryMap] = useState({})
+  const [goalCategoriesMap, setGoalCategoriesMap] = useState({})
   const [progressMap, setProgressMap] = useState({})
+  const [todayStatusMap, setTodayStatusMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState(null)
@@ -51,10 +39,11 @@ function GoalsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [goalsRes, profilesRes, categoriesRes] = await Promise.all([
+      const [goalsRes, profilesRes, categoriesRes, goalCategoriesRes] = await Promise.all([
         withTimeoutToast(supabase.from('goals').select('*').order('created_at', { ascending: false })),
         withTimeoutToast(supabase.from('profiles').select('id, username')),
         withTimeoutToast(supabase.from('categories').select('id, name, icon')),
+        withTimeoutToast(supabase.from('goal_categories').select('goal_id, category_id')),
       ])
 
       const uMap = {}
@@ -73,18 +62,75 @@ function GoalsPage() {
       }
       setCategoryMap(cMap)
 
+      // goal_id -> [category_id, ...]
+      const gcMap = {}
+      if (goalCategoriesRes.data) {
+        goalCategoriesRes.data.forEach((gc) => {
+          if (!gcMap[gc.goal_id]) gcMap[gc.goal_id] = []
+          gcMap[gc.goal_id].push(gc.category_id)
+        })
+      }
+      setGoalCategoriesMap(gcMap)
+
       const goalsData = goalsRes.data || []
       setGoals(goalsData)
 
-      // 并行查询每个目标的打卡进度
-      const progressEntries = await Promise.all(
-        goalsData.map(async (goal) => [goal.id, await fetchGoalProgress(goal)]),
-      )
-      const pMap = {}
-      progressEntries.forEach(([id, count]) => {
-        pMap[id] = count
+      // 计算每个目标的累计打卡数和当日完成状态
+      const todayStr = getTodayStr()
+
+      // 取所有目标中最早的 start_date，减少 checkins 查询量
+      const earliestStart = goalsData.reduce((min, g) => {
+        if (!g.start_date) return min
+        return !min || g.start_date < min ? g.start_date : min
+      }, null)
+
+      let checkins = []
+      if (earliestStart && goalsData.length > 0) {
+        const checkinsRes = await withTimeoutToast(
+          supabase
+            .from('checkins')
+            .select('user_id, category_id, checkin_date')
+            .gte('checkin_date', earliestStart),
+        )
+        checkins = checkinsRes.data || []
+      }
+
+      // 今日打卡：user_id -> Set(category_id)
+      const todayCheckinByUser = {}
+      checkins.forEach((c) => {
+        if (c.checkin_date === todayStr) {
+          if (!todayCheckinByUser[c.user_id]) todayCheckinByUser[c.user_id] = new Set()
+          todayCheckinByUser[c.user_id].add(c.category_id)
+        }
       })
+
+      const pMap = {}
+      const tMap = {}
+      for (const goal of goalsData) {
+        const catIds = gcMap[goal.id] || []
+        const endDate = goal.end_date || todayStr
+
+        // 累计打卡数：关联分类在 start_date ~ endDate 范围内的打卡数
+        const catIdSet = new Set(catIds)
+        const count = checkins.filter(
+          (c) =>
+            c.user_id === goal.user_id &&
+            catIdSet.has(c.category_id) &&
+            c.checkin_date >= goal.start_date &&
+            c.checkin_date <= endDate,
+        ).length
+        pMap[goal.id] = count
+
+        // 当日完成状态
+        const todaySet = todayCheckinByUser[goal.user_id]
+        const completed =
+          catIds.length > 0 && todaySet
+            ? catIds.filter((cid) => todaySet.has(cid)).length
+            : 0
+        tMap[goal.id] = { completed, total: catIds.length }
+      }
       setProgressMap(pMap)
+      setTodayStatusMap(tMap)
 
       // 自动更新状态：仅当前用户的目标（RLS 限制）
       if (user) {
@@ -103,12 +149,10 @@ function GoalsPage() {
         }
         if (updates.length > 0) {
           await Promise.all(updates)
-          // 更新本地状态
           setGoals((prev) =>
             prev.map((goal) => {
               if (goal.status !== 'active' || goal.user_id !== user.id) return goal
-              const effectiveStatus = getEffectiveStatus(goal, pMap[goal.id] || 0)
-              return { ...goal, status: effectiveStatus }
+              return { ...goal, status: getEffectiveStatus(goal, pMap[goal.id] || 0) }
             }),
           )
         }
@@ -175,6 +219,47 @@ function GoalsPage() {
     setEditingGoal(null)
   }
 
+  // 按 user_id 分组，保持目标按 created_at 降序的顺序
+  const userIdsInOrder = []
+  goals.forEach((g) => {
+    if (!userIdsInOrder.includes(g.user_id)) userIdsInOrder.push(g.user_id)
+  })
+  // 当前用户排第一，其余保持原顺序
+  const sortedUserIds = (() => {
+    if (!user || !userIdsInOrder.includes(user.id)) return userIdsInOrder
+    const others = userIdsInOrder.filter((id) => id !== user.id)
+    return [user.id, ...others]
+  })()
+
+  const renderGoalCard = (goal) => {
+    const currentCount = progressMap[goal.id] || 0
+    const effectiveStatus = getEffectiveStatus(goal, currentCount)
+    const catIds = goalCategoriesMap[goal.id] || []
+    const relatedCategories = catIds
+      .map((cid) => {
+        const cat = categoryMap[cid]
+        if (!cat) return null
+        return { id: cid, name: cat.name, icon: cat.icon }
+      })
+      .filter(Boolean)
+    const todayStatus = todayStatusMap[goal.id] || { completed: 0, total: 0 }
+
+    return (
+      <GoalCard
+        key={goal.id}
+        goal={{ ...goal, status: effectiveStatus }}
+        currentCount={currentCount}
+        todayCompleted={todayStatus.completed}
+        todayTotal={todayStatus.total}
+        relatedCategories={relatedCategories}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        isOwner={user?.id === goal.user_id}
+        creatorUsername={usernameMap[goal.user_id] || '未知用户'}
+      />
+    )
+  }
+
   return (
     <div className="px-4 py-6 pb-8">
       <h1 className="text-xl font-bold text-gray-900">目标</h1>
@@ -185,43 +270,66 @@ function GoalsPage() {
         </div>
       ) : (
         <div className="mt-4">
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-800">全部目标</h2>
-              <button
-                onClick={handleAdd}
-                className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700"
-              >
-                + 新增
-              </button>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-800">全员目标</h2>
+            <button
+              onClick={handleAdd}
+              className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+            >
+              + 新增
+            </button>
+          </div>
+
+          {goals.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              暂无目标，点击新增创建吧
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {sortedUserIds.map((userId) => {
+                const userGoals = goals.filter((g) => g.user_id === userId)
+                const periodicGoals = userGoals.filter((g) => g.type === 'periodic')
+                const lifelongGoals = userGoals.filter((g) => g.type === 'lifelong')
+                const username = usernameMap[userId] || '未知用户'
+                const isCurrentUser = user?.id === userId
+
+                return (
+                  <section key={userId} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+                    <h3 className="mb-3 text-sm font-semibold text-gray-800">
+                      {username}
+                      {isCurrentUser && (
+                        <span className="ml-1.5 rounded bg-primary-100 px-1.5 py-0.5 text-xs text-primary-600">
+                          我
+                        </span>
+                      )}
+                    </h3>
+
+                    {periodicGoals.length > 0 && (
+                      <div className="mb-3">
+                        <h4 className="mb-2 text-xs font-medium text-gray-500">周期目标</h4>
+                        <div className="space-y-2.5">
+                          {periodicGoals.map(renderGoalCard)}
+                        </div>
+                      </div>
+                    )}
+
+                    {lifelongGoals.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 text-xs font-medium text-gray-500">长期目标</h4>
+                        <div className="space-y-2.5">
+                          {lifelongGoals.map(renderGoalCard)}
+                        </div>
+                      </div>
+                    )}
+
+                    {periodicGoals.length === 0 && lifelongGoals.length === 0 && (
+                      <p className="py-3 text-center text-xs text-gray-400">暂无目标</p>
+                    )}
+                  </section>
+                )
+              })}
             </div>
-            <div className="space-y-2.5">
-              {goals.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-400">
-                  暂无目标，点击新增创建吧
-                </p>
-              ) : (
-                goals.map((goal) => {
-                  const currentCount = progressMap[goal.id] || 0
-                  const effectiveStatus = getEffectiveStatus(goal, currentCount)
-                  const cat = categoryMap[goal.category_id]
-                  return (
-                    <GoalCard
-                      key={goal.id}
-                      goal={{ ...goal, status: effectiveStatus }}
-                      currentCount={currentCount}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      isOwner={user?.id === goal.user_id}
-                      creatorUsername={usernameMap[goal.user_id] || '未知用户'}
-                      categoryName={cat?.name}
-                      categoryIcon={cat?.icon}
-                    />
-                  )
-                })
-              )}
-            </div>
-          </section>
+          )}
         </div>
       )}
 

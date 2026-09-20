@@ -34,7 +34,7 @@ function ProfilePage() {
     if (!user) return
     try {
       // 查询所有分类
-      const { data: cats } = await withTimeoutToast(supabase.from('categories').select('id, name, icon'))
+      const { data: cats } = await withTimeoutToast(supabase.from('categories').select('id, name, icon').eq('user_id', user.id))
       setCategories(cats || [])
 
       // 查询总数

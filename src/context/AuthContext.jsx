@@ -85,12 +85,12 @@ export function AuthProvider({ children }) {
       throw new Error('USERNAME_EXISTS')
     }
 
-    // 2. 检查注册人数是否达到10人上限
+    // 2. 检查注册人数是否达到2人上限
     const { count } = await withTimeoutToast(supabase
       .from('profiles')
       .select('id', { count: 'exact', head: true }))
 
-    if (count >= 10) {
+    if (count >= 2) {
       throw new Error('USER_LIMIT_REACHED')
     }
 
