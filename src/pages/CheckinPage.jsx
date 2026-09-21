@@ -262,9 +262,17 @@ function CheckinPage() {
           {loading ? (
             <div className="w-full py-8 text-center text-sm text-gray-400">加载中…</div>
           ) : categories.length === 0 ? (
-            <div className="w-full py-8 text-center text-sm text-gray-400">
-              暂无分类，点击下方按钮添加
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingCategory(null)
+                setCategoryFormOpen(true)
+              }}
+              className="flex w-[calc(50%-0.375rem)] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-300 py-4 text-gray-400 transition-colors hover:border-primary-400 hover:text-primary-600"
+            >
+              <span className="text-2xl">+</span>
+              <span className="text-sm">添加分类</span>
+            </button>
           ) : (
             <>
               {categories.map((cat) => {

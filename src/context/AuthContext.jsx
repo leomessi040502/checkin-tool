@@ -4,6 +4,26 @@ import { withTimeoutToast } from '../utils/apiWrapper'
 
 const AuthContext = createContext(null)
 
+/** 圈子人数上限（与数据库 enforce_profile_limit() 中的 max_users 保持一致） */
+const MAX_USERS = 2
+
+/**
+ * 获取真实注册人数
+ * 注意：profiles 表的 RLS 只对 authenticated 开放，未登录状态下直接查询会被拦截返回 0，
+ * 因此必须走 SECURITY DEFINER 的 get_profile_count() RPC（见迁移 008_signup_limit.sql）。
+ *
+ * RPC 调用失败（含未执行迁移时的 PGRST202 / 42883）一律返回 null，不阻塞注册；
+ * 真正的人数硬保障由数据库触发器 enforce_profile_limit() 提供。
+ */
+async function fetchProfileCount() {
+  const { data, error } = await withTimeoutToast(supabase.rpc('get_profile_count'))
+  if (error) {
+    console.warn('[AuthContext] 人数查询失败:', error.code, error.message)
+    return null
+  }
+  return typeof data === 'number' ? data : null
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -85,12 +105,9 @@ export function AuthProvider({ children }) {
       throw new Error('USERNAME_EXISTS')
     }
 
-    // 2. 检查注册人数是否达到2人上限
-    const { count } = await withTimeoutToast(supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true }))
-
-    if (count >= 2) {
+    // 2. 检查注册人数是否达到上限（走 RPC，绕过 RLS）
+    const count = await fetchProfileCount()
+    if (count !== null && count >= MAX_USERS) {
       throw new Error('USER_LIMIT_REACHED')
     }
 
@@ -104,7 +121,13 @@ export function AuthProvider({ children }) {
       const { error: profileError } = await withTimeoutToast(supabase
         .from('profiles')
         .insert({ id: data.user.id, username }))
-      if (profileError) throw profileError
+      if (profileError) {
+        // 数据库触发器兜底拒绝（绕过前端直接注册）
+        if (String(profileError.message || '').includes('USER_LIMIT_REACHED')) {
+          throw new Error('USER_LIMIT_REACHED')
+        }
+        throw profileError
+      }
 
       setUser({ id: data.user.id, email: data.user.email, username })
     }

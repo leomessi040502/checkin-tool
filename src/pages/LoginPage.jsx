@@ -6,6 +6,9 @@ import { supabase } from '../lib/supabase'
 const USERNAME_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{2,20}$/
 const PASSWORD_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{6,20}$/
 
+/** 圈子人数上限（与 AuthContext / 数据库 enforce_profile_limit() 保持一致） */
+const MAX_USERS = 2
+
 function LoginPage() {
   const navigate = useNavigate()
   const { signIn, signUp, user, loading } = useAuth()
@@ -23,15 +26,21 @@ function LoginPage() {
   }, [user, loading, navigate])
 
   // 注册模式下预查人数上限
+  // 注意：profiles 的 RLS 只对 authenticated 开放，匿名直接查询会被拦截返回 0，
+  // 因此走 SECURITY DEFINER 的 get_profile_count() RPC（迁移 008_signup_limit.sql）
   useEffect(() => {
     if (mode !== 'register') return
     let active = true
     supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .then(({ count }) => {
+      .rpc('get_profile_count')
+      .then(({ data, error }) => {
         if (!active) return
-        if (count >= 2) {
+        // 查询失败（含未执行迁移）时不显示"人数已满"，避免误导
+        if (error) {
+          console.warn('[LoginPage] 人数查询失败:', error.code, error.message)
+          return
+        }
+        if (typeof data === 'number' && data >= MAX_USERS) {
           setUserLimitReached(true)
           setError('圈子人数已满，联系成员获取账号')
         }
