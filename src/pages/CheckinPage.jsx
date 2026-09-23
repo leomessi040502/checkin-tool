@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
-import { getTodayStr, formatDateStr, formatChineseDate, formatTime } from '../utils/date'
+import { getTodayStr, formatChineseDate, formatTime } from '../utils/date'
 import CheckinModal from '../components/CheckinModal'
 import MakeupCheckinModal from '../components/MakeupCheckinModal'
 import CategoryFormModal from '../components/CategoryFormModal'
@@ -11,6 +11,8 @@ function CheckinPage() {
   const { user } = useAuth()
   const todayStr = getTodayStr()  // 仅用于比较和 max 约束
   const [selectedDate, setSelectedDate] = useState(getTodayStr())
+  // 日期选择草稿：手机端原生选择器不可靠，改为先选草稿、点"确定"才切换
+  const [draftDate, setDraftDate] = useState(getTodayStr())
   const isToday = selectedDate === todayStr
 
   // 分类列表（从 categories 表动态加载，按当前用户过滤）
@@ -220,15 +222,17 @@ function CheckinPage() {
     setDeleting(false)
   }
 
-  /** 按天前后切换日期（移动端原生日期选择器不可靠时的入口） */
-  const shiftDate = (delta) => {
-    const base = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) ? selectedDate : todayStr
-    const [y, m, d] = base.split('-').map(Number)
-    const dt = new Date(y, m - 1, d)
-    dt.setDate(dt.getDate() + delta)
-    const next = formatDateStr(dt)
-    if (next > todayStr) return
-    setSelectedDate(next)
+  /** 确认切换到所选日期（手机端"选择草稿 + 确定"模式，规避原生选择器空值/弹回问题） */
+  const confirmDate = () => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(draftDate) && draftDate <= todayStr) {
+      setSelectedDate(draftDate)
+    }
+  }
+
+  /** 回到今天，并同步草稿 */
+  const backToToday = () => {
+    setSelectedDate(todayStr)
+    setDraftDate(todayStr)
   }
 
   return (
@@ -241,45 +245,35 @@ function CheckinPage() {
             : '打卡记录'}
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => shiftDate(-1)}
-            aria-label="前一天"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-lg leading-none text-gray-500 active:bg-gray-100"
-          >
-            ‹
-          </button>
           <input
             type="date"
-            value={selectedDate}
+            value={draftDate}
             max={todayStr}
             onChange={(e) => {
-              // 移动端原生选择器在"未选完/取消"时会以空值触发，
-              // 必须校验后再更新，否则 selectedDate 被写成空串导致查询无结果
+              // 只接收合法且不晚于今天的日期；移动端选择器中途触发的空值直接忽略
               const v = e.target.value
               if (/^\d{4}-\d{2}-\d{2}$/.test(v) && v <= todayStr) {
-                setSelectedDate(v)
+                setDraftDate(v)
               }
             }}
             className="h-10 min-w-[7.5rem] flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 outline-none transition-colors focus:border-primary-500"
           />
           <button
             type="button"
-            onClick={() => shiftDate(1)}
-            disabled={isToday}
-            aria-label="后一天"
-            className={`flex h-10 w-10 items-center justify-center rounded-lg border text-lg leading-none ${
-              isToday
-                ? 'cursor-not-allowed border-gray-100 text-gray-300'
-                : 'border-gray-200 text-gray-500 active:bg-gray-100'
+            onClick={confirmDate}
+            disabled={draftDate === selectedDate}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              draftDate === selectedDate
+                ? 'cursor-not-allowed border border-gray-100 text-gray-300'
+                : 'bg-primary-600 text-white active:bg-primary-700'
             }`}
           >
-            ›
+            确定
           </button>
           {!isToday && (
             <button
               type="button"
-              onClick={() => setSelectedDate(todayStr)}
+              onClick={backToToday}
               className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-100"
             >
               回到今日
