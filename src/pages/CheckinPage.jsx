@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
-import { getTodayStr, formatChineseDate, formatTime } from '../utils/date'
+import { getTodayStr, formatDateStr, formatChineseDate, formatTime } from '../utils/date'
 import CheckinModal from '../components/CheckinModal'
 import MakeupCheckinModal from '../components/MakeupCheckinModal'
 import CategoryFormModal from '../components/CategoryFormModal'
@@ -220,9 +220,15 @@ function CheckinPage() {
     setDeleting(false)
   }
 
-  /** 根据 category_id 获取分类信息 */
-  const getCategoryById = (categoryId) => {
-    return categories.find((c) => c.id === categoryId)
+  /** 按天前后切换日期（移动端原生日期选择器不可靠时的入口） */
+  const shiftDate = (delta) => {
+    const base = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) ? selectedDate : todayStr
+    const [y, m, d] = base.split('-').map(Number)
+    const dt = new Date(y, m - 1, d)
+    dt.setDate(dt.getDate() + delta)
+    const next = formatDateStr(dt)
+    if (next > todayStr) return
+    setSelectedDate(next)
   }
 
   return (
@@ -234,14 +240,42 @@ function CheckinPage() {
             ? (user?.username ? `${user.username}，打卡啦！` : '打卡')
             : '打卡记录'}
         </h1>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => shiftDate(-1)}
+            aria-label="前一天"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-lg leading-none text-gray-500 active:bg-gray-100"
+          >
+            ‹
+          </button>
           <input
             type="date"
             value={selectedDate}
             max={todayStr}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 outline-none transition-colors focus:border-primary-500"
+            onChange={(e) => {
+              // 移动端原生选择器在"未选完/取消"时会以空值触发，
+              // 必须校验后再更新，否则 selectedDate 被写成空串导致查询无结果
+              const v = e.target.value
+              if (/^\d{4}-\d{2}-\d{2}$/.test(v) && v <= todayStr) {
+                setSelectedDate(v)
+              }
+            }}
+            className="h-10 min-w-[7.5rem] flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 outline-none transition-colors focus:border-primary-500"
           />
+          <button
+            type="button"
+            onClick={() => shiftDate(1)}
+            disabled={isToday}
+            aria-label="后一天"
+            className={`flex h-10 w-10 items-center justify-center rounded-lg border text-lg leading-none ${
+              isToday
+                ? 'cursor-not-allowed border-gray-100 text-gray-300'
+                : 'border-gray-200 text-gray-500 active:bg-gray-100'
+            }`}
+          >
+            ›
+          </button>
           {!isToday && (
             <button
               type="button"
