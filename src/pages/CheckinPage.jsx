@@ -6,13 +6,14 @@ import { getTodayStr, formatChineseDate, formatTime } from '../utils/date'
 import CheckinModal from '../components/CheckinModal'
 import MakeupCheckinModal from '../components/MakeupCheckinModal'
 import CategoryFormModal from '../components/CategoryFormModal'
+import DatePickerModal from '../components/DatePickerModal'
 
 function CheckinPage() {
   const { user } = useAuth()
   const todayStr = getTodayStr()  // 仅用于比较和 max 约束
   const [selectedDate, setSelectedDate] = useState(getTodayStr())
-  // 日期选择草稿：手机端原生选择器不可靠，改为先选草稿、点"确定"才切换
-  const [draftDate, setDraftDate] = useState(getTodayStr())
+  // 日期选择弹窗：手机端原生选择器不可靠，改为弹窗内选完点"确定"才切换
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
   const isToday = selectedDate === todayStr
 
   // 分类列表（从 categories 表动态加载，按当前用户过滤）
@@ -222,17 +223,9 @@ function CheckinPage() {
     setDeleting(false)
   }
 
-  /** 确认切换到所选日期（手机端"选择草稿 + 确定"模式，规避原生选择器空值/弹回问题） */
-  const confirmDate = () => {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(draftDate) && draftDate <= todayStr) {
-      setSelectedDate(draftDate)
-    }
-  }
-
-  /** 回到今天，并同步草稿 */
+  /** 回到今天 */
   const backToToday = () => {
     setSelectedDate(todayStr)
-    setDraftDate(todayStr)
   }
 
   return (
@@ -245,30 +238,13 @@ function CheckinPage() {
             : '打卡记录'}
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={draftDate}
-            max={todayStr}
-            onChange={(e) => {
-              // 只接收合法且不晚于今天的日期；移动端选择器中途触发的空值直接忽略
-              const v = e.target.value
-              if (/^\d{4}-\d{2}-\d{2}$/.test(v) && v <= todayStr) {
-                setDraftDate(v)
-              }
-            }}
-            className="h-10 min-w-[7.5rem] flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 outline-none transition-colors focus:border-primary-500"
-          />
           <button
             type="button"
-            onClick={confirmDate}
-            disabled={draftDate === selectedDate}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              draftDate === selectedDate
-                ? 'cursor-not-allowed border border-gray-100 text-gray-300'
-                : 'bg-primary-600 text-white active:bg-primary-700'
-            }`}
+            onClick={() => setDatePickerOpen(true)}
+            className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 transition-colors active:bg-gray-100"
           >
-            确定
+            <span>📅</span>
+            <span>{selectedDate}</span>
           </button>
           {!isToday && (
             <button
@@ -497,6 +473,18 @@ function CheckinPage() {
           setEditingCategory(null)
         }}
         onSuccess={handleCategoryFormSuccess}
+      />
+
+      {/* 日期选择弹窗 */}
+      <DatePickerModal
+        isOpen={datePickerOpen}
+        value={selectedDate}
+        max={todayStr}
+        onClose={() => setDatePickerOpen(false)}
+        onConfirm={(date) => {
+          setSelectedDate(date)
+          setDatePickerOpen(false)
+        }}
       />
 
       {/* 删除分类确认弹窗 */}
