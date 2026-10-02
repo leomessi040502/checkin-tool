@@ -41,11 +41,16 @@ function countConsecutiveDays(dateSet, startDate) {
  * 计算某用户各分类连续打卡天数和总连续打卡天数
  * 动态按 category_id 分组，总连续天数逻辑不变（任意分类有打卡即连续）
  * @param {Array} checkins - 某用户的所有打卡记录，每条含 { checkin_date, category_id }
- * @returns {{ categoryStreaks: { [string]: number }, totalStreak: number }}
+ * @returns {{
+ *   categoryStreaks: { [string]: number },  // 各分类「当前连续」天数（断档即归零）
+ *   categoryDays: { [string]: number },     // 各分类「累计」打卡天数（去重后的日期数）
+ *   totalStreak: number,                    // 总「当前连续」天数
+ *   totalDays: number                       // 总「累计」打卡天数
+ * }}
  */
 export function calculateStreaks(checkins) {
   if (!checkins || checkins.length === 0) {
-    return { categoryStreaks: {}, totalStreak: 0 }
+    return { categoryStreaks: {}, categoryDays: {}, totalStreak: 0, totalDays: 0 }
   }
 
   // 按日期和分类分组
@@ -88,12 +93,18 @@ export function calculateStreaks(checkins) {
   }
 
   const categoryStreaks = {}
+  const categoryDays = {}
   Object.keys(categoryDateSets).forEach((catId) => {
     categoryStreaks[catId] = calcCategoryStreak(categoryDateSets[catId])
+    // 累计天数 = 该分类打过卡的不同日期数量
+    categoryDays[catId] = categoryDateSets[catId].size
   })
 
   return {
     categoryStreaks,
+    categoryDays,
     totalStreak: calcTotalStreak(),
+    // 累计天数 = 有过任意打卡的不同日期数量
+    totalDays: dateSet.size,
   }
 }

@@ -100,9 +100,24 @@ function StatsPage() {
           }
         })
 
+        // 孤儿记录：category_id 为空，或指向的分类已不属于该用户（多半是分类被删过）
+        // 这类记录无法归入任何现有分类，会在「次数」里凭空消失，需要单独暴露出来
+        const userCatIds = new Set(userCats.map((cat) => cat.id))
+        const orphanCount = userCheckins.filter(
+          (c) => !c.category_id || !userCatIds.has(c.category_id)
+        ).length
+
         const streaks = calculateStreaks(userCheckins)
 
-        return { userId, username, totalCount, categoryCounts, streaks, userCategories: userCats }
+        return {
+          userId,
+          username,
+          totalCount,
+          categoryCounts,
+          streaks,
+          userCategories: userCats,
+          orphanCount,
+        }
       })
       .sort((a, b) => b.totalCount - a.totalCount)
   }, [allUserIds, checkins, profileMap, categoriesByUser])
@@ -199,18 +214,27 @@ function StatsPage() {
 
         const catRanking = userCats
           .map((cat) => {
-            const count = userCheckins.filter((c) => c.category_id === cat.id).length
-            return { ...cat, count }
+            const catCheckins = userCheckins.filter((c) => c.category_id === cat.id)
+            // 累计天数 = 该分类打过卡的不同日期数量（同一天多次只算 1 天）
+            const days = new Set(catCheckins.map((c) => normalizeDate(c.checkin_date))).size
+            return { ...cat, count: catCheckins.length, days }
           })
           .sort((a, b) => b.count - a.count)
 
         const totalCheckins = userCheckins.length
+
+        // 孤儿记录：无法归入任何现有分类的打卡
+        const userCatIds = new Set(userCats.map((cat) => cat.id))
+        const orphanCount = userCheckins.filter(
+          (c) => !c.category_id || !userCatIds.has(c.category_id)
+        ).length
 
         return {
           userId,
           username: profileMap[userId] || '未知用户',
           categories: catRanking,
           totalCheckins,
+          orphanCount,
         }
       })
       .filter((item) => item.categories.length > 0)
@@ -288,7 +312,7 @@ function StatsPage() {
                     </span>
                     <span className="font-medium text-gray-900">{user.username}</span>
                     <span className="ml-auto text-sm text-gray-500">
-                      总打卡 {user.totalCount} 次
+                      总打卡 {user.totalCount} 次 · {user.streaks.totalDays || 0} 天
                     </span>
                   </div>
 
@@ -303,20 +327,30 @@ function StatsPage() {
                             key={cat.id}
                             className="rounded bg-primary-50 px-2 py-0.5 text-xs text-primary-600"
                           >
-                            {cat.icon} {cat.name} {user.categoryCounts[cat.id] || 0}次
+                            {cat.icon} {cat.name} {user.categoryCounts[cat.id] || 0}次 ·{' '}
+                            {user.streaks.categoryDays[cat.id] || 0}天
                           </span>
                         ))}
                       </div>
 
-                      {/* 连续天数 */}
+                      {/* 孤儿记录提示：分类被删过 / category_id 丢失的打卡 */}
+                      {user.orphanCount > 0 && (
+                        <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                          ⚠️ 有 {user.orphanCount} 条打卡没关联到现有分类（分类可能已被删除重建）
+                        </p>
+                      )}
+
+                      {/* 累计天数 / 连续天数（两者分开写清，避免把「连续」误读成「累计」） */}
                       <div className="mt-3 border-t border-gray-100 pt-3">
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
                           <span className="font-medium text-gray-700">
-                            🔥 总连续 {user.streaks.totalStreak} 天
+                            🔥 连续 {user.streaks.totalStreak} 天
                           </span>
+                          <span>累计 {user.streaks.totalDays || 0} 天</span>
                           {user.userCategories.map((cat) => (
                             <span key={cat.id}>
-                              {cat.icon} {cat.name} {user.streaks.categoryStreaks[cat.id] || 0}天
+                              {cat.icon} {cat.name} 连续{' '}
+                              {user.streaks.categoryStreaks[cat.id] || 0} 天
                             </span>
                           ))}
                         </div>
@@ -452,12 +486,22 @@ function StatsPage() {
                           <span className="flex-1 text-sm text-gray-700">
                             {cat.name}
                           </span>
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm text-gray-400">
+                            累计 {cat.days} 天
+                          </span>
+                          <span className="w-16 text-right text-sm font-medium text-gray-900">
                             {cat.count} 次
                           </span>
                         </div>
                       ))}
                     </div>
+                  )}
+
+                  {/* 孤儿记录提示 */}
+                  {userItem.orphanCount > 0 && (
+                    <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                      ⚠️ 另有 {userItem.orphanCount} 条打卡没关联到现有分类（分类可能已被删除重建）
+                    </p>
                   )}
                 </div>
               ))}
