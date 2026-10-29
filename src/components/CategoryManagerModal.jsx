@@ -89,6 +89,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
           name: trimmed,
           icon: newIcon,
           creator_id: userId,
+          user_id: userId,
         }))
       if (insertError) throw insertError
 
@@ -139,21 +140,6 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
         .update({ name: trimmed, icon: editIcon })
         .eq('id', editingId))
       if (updateError) throw updateError
-
-      // 如果名称变了，同步更新 checkins 和 goals 中的旧名称
-      const oldCat = categories.find((c) => c.id === editingId)
-      if (oldCat && oldCat.name !== trimmed) {
-        await Promise.all([
-          withTimeoutToast(supabase
-            .from('checkins')
-            .update({ category: trimmed })
-            .eq('category', oldCat.name)),
-          withTimeoutToast(supabase
-            .from('goals')
-            .update({ category: trimmed })
-            .eq('category', oldCat.name)),
-        ])
-      }
 
       onSuccess()
       setEditingId(null)

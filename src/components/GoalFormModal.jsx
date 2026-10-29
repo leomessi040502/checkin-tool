@@ -107,7 +107,11 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     if (!title.trim()) {
       return '请输入目标名称'
     }
-    if (selectedCategoryIds.length === 0) {
+    // 至少关联一个当前仍存在的分类（过滤已删除分类的死链）
+    const validCount = selectedCategoryIds.filter((id) =>
+      categories.some((c) => c.id === id),
+    ).length
+    if (validCount === 0) {
       return '请至少关联一个分类'
     }
     // 目标次数：可空，若填写必须为正整数
@@ -140,6 +144,11 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
     setSubmitting(true)
     setError('')
     const startTime = Date.now()
+
+    // 过滤掉已不存在的分类（防止已删除分类的死链被静默保留）
+    const validCategoryIds = selectedCategoryIds.filter((id) =>
+      categories.some((c) => c.id === id),
+    )
 
     try {
       const count = targetCount ? parseInt(targetCount, 10) : null
@@ -186,8 +195,8 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
         .eq('goal_id', goalId))
       if (delRelError) throw delRelError
 
-      if (selectedCategoryIds.length > 0) {
-        const relRows = selectedCategoryIds.map((catId) => ({
+      if (validCategoryIds.length > 0) {
+        const relRows = validCategoryIds.map((catId) => ({
           goal_id: goalId,
           category_id: catId,
         }))

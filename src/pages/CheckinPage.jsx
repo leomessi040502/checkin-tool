@@ -531,7 +531,7 @@ function CheckinPage() {
               确认删除分类「{deleteTarget.name}」？
             </p>
             <p className="mt-2 text-center text-xs text-ink-400">
-              删除后该分类下的打卡记录将保留但分类信息会丢失
+              打卡记录会保留但分类信息会丢失；若该分类被目标关联，对应目标将失去关联、进度不再累计（可在目标页编辑重新关联）
             </p>
             <div className="mt-5 flex gap-3">
               <button
