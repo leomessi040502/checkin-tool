@@ -224,14 +224,14 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
         className="relative z-10 max-h-[90vh] w-full max-w-mobile overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-gray-900">
+        <h2 className="mb-4 text-lg font-bold text-ink-900">
           {isEdit ? '编辑目标' : '新增目标'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 目标名称 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-600">
               目标名称
             </label>
             <input
@@ -240,20 +240,20 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
               onChange={(e) => setTitle(e.target.value)}
               maxLength={30}
               placeholder="请输入目标名称"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
-            <p className="mt-1 text-right text-xs text-gray-400">
+            <p className="mt-1 text-right text-xs text-ink-400">
               {title.length}/30
             </p>
           </div>
 
           {/* 分类选择 - 动态加载 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-600">
               分类
             </label>
             {categories.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-gray-300 py-2.5 text-center text-sm text-gray-400">
+              <p className="rounded-lg border border-dashed border-primary-200 py-2.5 text-center text-sm text-ink-400">
                 暂无分类，请先在打卡页添加分类
               </p>
             ) : (
@@ -273,8 +273,8 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
                       }}
                       className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                         selected
-                          ? 'border-primary-500 bg-primary-50 text-primary-600'
-                          : 'border-gray-200 text-gray-500'
+                          ? 'border-primary-500 bg-primary-100 text-primary-600'
+                          : 'border-primary-200 text-ink-600'
                       }`}
                     >
                       <span>{cat.icon}</span>
@@ -288,7 +288,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
 
           {/* 类型选择 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-600">
               类型
             </label>
             <div className="flex gap-2">
@@ -302,8 +302,8 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
                   }}
                   className={`flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
                     type === t.key
-                      ? 'border-primary-500 bg-primary-50 text-primary-600'
-                      : 'border-gray-200 text-gray-500'
+                      ? 'border-primary-500 bg-primary-100 text-primary-600'
+                      : 'border-primary-200 text-ink-600'
                   }`}
                 >
                   {t.label}
@@ -314,8 +314,8 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
 
           {/* 目标次数 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              目标次数 <span className="text-xs font-normal text-gray-400">（选填）</span>
+            <label className="mb-1 block text-sm font-medium text-ink-600">
+              目标次数 <span className="text-xs font-normal text-ink-400">（选填）</span>
             </label>
             <input
               type="number"
@@ -323,36 +323,36 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
               onChange={(e) => setTargetCount(e.target.value)}
               min={1}
               placeholder="请输入正整数"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
           </div>
 
           {/* 起始日期 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-600">
               起始日期
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
           </div>
 
           {/* 截止日期 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              截止日期 <span className="text-xs font-normal text-gray-400">（选填）</span>
+            <label className="mb-1 block text-sm font-medium text-ink-600">
+              截止日期 <span className="text-xs font-normal text-ink-400">（选填）</span>
             </label>
             <input
               type="date"
               value={endDate}
               min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-ink-400">
               {type === 'periodic'
                 ? '周期目标：目标次数和截止日期至少填写一个'
                 : '长期目标：目标次数和截止日期均可不填'}
@@ -368,7 +368,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50"
+              className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
             >
               取消
             </button>
@@ -378,7 +378,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
               className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
                 submitting
                   ? 'cursor-not-allowed bg-primary-300 text-white'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-primary-500 text-white hover:bg-primary-600'
               }`}
             >
               {submitting ? '提交中…' : isEdit ? '保存' : '确认'}

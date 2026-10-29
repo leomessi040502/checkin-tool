@@ -19,7 +19,7 @@ function App() {
     <AuthProvider>
       <NetworkStatus />
       <Toast />
-      <div className="flex min-h-screen flex-col bg-gray-50">
+      <div className="flex min-h-screen flex-col bg-surface">
         <div className="flex-1">
           <Routes>
             <Route path="/login" element={<LoginPage />} />

@@ -120,27 +120,27 @@ export default function CategoryFormModal({ isOpen, onClose, onSuccess, category
         className="relative z-10 max-h-[90vh] w-full max-w-mobile overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-gray-900">
+        <h2 className="mb-4 text-lg font-bold text-ink-900">
           {isEdit ? '编辑分类' : '添加分类'}
         </h2>
 
         {/* 分类名称 */}
         <div className="mb-4">
-          <label className="mb-1 block text-sm text-gray-600">分类名称</label>
+          <label className="mb-1 block text-sm text-ink-600">分类名称</label>
           <input
             type="text"
             value={name}
             onChange={(e) => { setName(e.target.value); setError('') }}
             maxLength={20}
             placeholder="请输入分类名称（最多20字）"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+            className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
           />
-          <p className="mt-1 text-right text-xs text-gray-400">{name.length}/20</p>
+          <p className="mt-1 text-right text-xs text-ink-400">{name.length}/20</p>
         </div>
 
         {/* 选择图标 */}
         <div className="mb-4">
-          <label className="mb-2 block text-sm text-gray-600">选择图标</label>
+          <label className="mb-2 block text-sm text-ink-600">选择图标</label>
           <div className="flex flex-wrap gap-1.5">
             {PRESET_ICONS.map((ic) => (
               <button
@@ -150,7 +150,7 @@ export default function CategoryFormModal({ isOpen, onClose, onSuccess, category
                 className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg transition-colors ${
                   !customIcon && icon === ic
                     ? 'bg-primary-200 ring-2 ring-primary-500'
-                    : 'bg-gray-100 hover:bg-gray-200'
+                    : 'bg-primary-50 hover:bg-primary-100'
                 }`}
               >
                 {ic}
@@ -159,20 +159,22 @@ export default function CategoryFormModal({ isOpen, onClose, onSuccess, category
           </div>
           {/* 自定义图标输入 */}
           <div className="mt-2">
-            <label className="mb-1 block text-xs text-gray-400">或自定义输入 emoji</label>
+            <label className="mb-1 block text-xs text-ink-400">或自定义输入 emoji</label>
             <input
               type="text"
               value={customIcon}
               onChange={(e) => setCustomIcon(e.target.value.slice(0, 4))}
               placeholder="粘贴或输入 emoji"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
             />
           </div>
           {/* 预览 */}
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+          <div className="mt-2 flex items-center gap-2 text-xs text-ink-400">
             <span>预览：</span>
-            <span className="text-2xl">{currentIcon}</span>
-            <span className="font-medium text-gray-600">{name || '分类名称'}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 text-xl">
+              {currentIcon}
+            </span>
+            <span className="font-medium text-ink-600">{name || '分类名称'}</span>
           </div>
         </div>
 
@@ -187,7 +189,7 @@ export default function CategoryFormModal({ isOpen, onClose, onSuccess, category
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50 disabled:opacity-50"
           >
             取消
           </button>
@@ -198,7 +200,7 @@ export default function CategoryFormModal({ isOpen, onClose, onSuccess, category
             className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
               submitting
                 ? 'bg-primary-400'
-                : 'bg-primary-600 hover:bg-primary-700'
+                : 'bg-primary-500 hover:bg-primary-600'
             }`}
           >
             {submitting ? '提交中…' : isEdit ? '保存' : '确认添加'}

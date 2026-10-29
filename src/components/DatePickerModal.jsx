@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 /**
  * 自定义日历选择弹窗（不依赖手机原生日期控件）
@@ -102,11 +103,11 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
       >
         {/* 顶部：标题 + 今天 */}
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">选择日期</h2>
+          <h2 className="text-base font-bold text-ink-900">选择日期</h2>
           <button
             type="button"
             onClick={jumpToMax}
-            className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-600 transition-colors active:bg-primary-100"
+            className="rounded-lg bg-gold-100 px-3 py-1 text-xs font-medium text-gold-700 transition-colors hover:bg-gold-500/20"
           >
             今天
           </button>
@@ -118,11 +119,11 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
             type="button"
             aria-label="上个月"
             onClick={() => shiftMonth(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-lg text-gray-500 transition-colors active:bg-gray-100"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-600 transition-colors active:bg-primary-100"
           >
-            ‹
+            <ChevronLeft size={20} />
           </button>
-          <div className="text-sm font-semibold text-gray-800">
+          <div className="text-sm font-semibold text-ink-900">
             {view.year} 年 {view.month + 1} 月
           </div>
           {canGoNext ? (
@@ -130,13 +131,13 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
               type="button"
               aria-label="下个月"
               onClick={() => shiftMonth(1)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-lg text-gray-500 transition-colors active:bg-gray-100"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-600 transition-colors active:bg-primary-100"
             >
-              ›
+              <ChevronRight size={20} />
             </button>
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center text-lg text-gray-200">
-              ›
+            <span className="flex h-10 w-10 items-center justify-center text-ink-400 opacity-40">
+              <ChevronRight size={20} />
             </span>
           )}
         </div>
@@ -144,7 +145,7 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
         {/* 星期表头 */}
         <div className="mb-1 grid grid-cols-7">
           {WEEKDAYS.map((w) => (
-            <div key={w} className="py-1 text-center text-xs text-gray-400">
+            <div key={w} className="py-1 text-center text-xs text-ink-400">
               {w}
             </div>
           ))}
@@ -173,10 +174,10 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
                     selected
                       ? 'bg-primary-600 font-semibold text-white'
                       : disabled
-                        ? 'text-gray-300'
+                        ? 'text-ink-400 opacity-40'
                         : isMaxDay
                           ? 'font-semibold text-primary-600 ring-1 ring-primary-300'
-                          : 'text-gray-700'
+                          : 'text-ink-600'
                   }`}
                 >
                   {dayNum}
@@ -186,7 +187,7 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
           })}
         </div>
 
-        <p className="mt-2 text-center text-xs text-gray-400">
+        <p className="mt-2 text-center text-xs text-ink-400">
           已选：{draft || '—'}（只能选今天及以前）
         </p>
 
@@ -195,7 +196,7 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors active:bg-gray-50"
+            className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
           >
             取消
           </button>
@@ -206,7 +207,7 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
               if (isValid) onConfirm(draft)
             }}
             className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
-              isValid ? 'bg-primary-600 active:bg-primary-700' : 'cursor-not-allowed bg-primary-300'
+              isValid ? 'bg-primary-500 hover:bg-primary-600' : 'cursor-not-allowed bg-primary-300'
             }`}
           >
             确定

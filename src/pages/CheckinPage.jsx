@@ -7,6 +7,16 @@ import CheckinModal from '../components/CheckinModal'
 import MakeupCheckinModal from '../components/MakeupCheckinModal'
 import CategoryFormModal from '../components/CategoryFormModal'
 import DatePickerModal from '../components/DatePickerModal'
+import {
+  CheckCircle2,
+  Pencil,
+  Trash2,
+  CalendarClock,
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+} from 'lucide-react'
 
 function CheckinPage() {
   const { user } = useAuth()
@@ -232,7 +242,7 @@ function CheckinPage() {
     <div className="px-4 py-6">
       {/* 顶部：用户名 + 日期选择器 */}
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">
+        <h1 className="text-xl font-bold text-ink-900">
           {isToday
             ? (user?.username ? `${user.username}，打卡啦！` : '打卡')
             : '打卡记录'}
@@ -241,30 +251,37 @@ function CheckinPage() {
           <button
             type="button"
             onClick={() => setDatePickerOpen(true)}
-            className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 transition-colors active:bg-gray-100"
+            className="flex h-10 items-center gap-2 rounded-lg border border-primary-200 px-3 text-sm text-primary-600 transition-colors active:bg-primary-100"
           >
-            <span>📅</span>
+            <CalendarDays size={16} />
             <span>{selectedDate}</span>
           </button>
           {!isToday && (
             <button
               type="button"
               onClick={backToToday}
-              className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-100"
+              className="rounded-lg border border-primary-200 bg-primary-100 px-3 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-200"
             >
               回到今日
             </button>
           )}
         </div>
-        <p className="mt-1 text-sm text-gray-500">{formatChineseDate(selectedDate)}</p>
+        <p className="mt-1 text-sm text-ink-600">{formatChineseDate(selectedDate)}</p>
       </div>
 
       {/* 上方：我的打卡区域 */}
       <div className="mb-6">
-        <h2 className="mb-3 text-base font-bold text-gray-900">我的打卡</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="section-title">我的打卡</h2>
+          {categories.length > 0 && (
+            <span className="text-xs font-medium text-gold-500">
+              已完成 {categories.filter((c) => todayCheckins[c.id]).length}/{categories.length}
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-3">
           {loading ? (
-            <div className="w-full py-8 text-center text-sm text-gray-400">加载中…</div>
+            <div className="w-full py-8 text-center text-sm text-ink-400">加载中…</div>
           ) : categories.length === 0 ? (
             <button
               type="button"
@@ -272,9 +289,9 @@ function CheckinPage() {
                 setEditingCategory(null)
                 setCategoryFormOpen(true)
               }}
-              className="flex w-[calc(50%-0.375rem)] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-300 py-4 text-gray-400 transition-colors hover:border-primary-400 hover:text-primary-600"
+              className="flex w-[calc(50%-0.375rem)] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary-200 py-4 text-ink-400 transition-colors hover:border-primary-500 hover:text-primary-600"
             >
-              <span className="text-2xl">+</span>
+              <Plus size={20} />
               <span className="text-sm">添加分类</span>
             </button>
           ) : (
@@ -289,25 +306,33 @@ function CheckinPage() {
                     onClick={isToday ? () => handleCardClick(cat) : undefined}
                     className={`flex w-[calc(50%-0.375rem)] ${
                       isToday ? 'cursor-pointer' : 'cursor-default'
-                    } flex-col items-center gap-1 rounded-2xl border py-4 transition-colors ${
+                    } flex-col items-center gap-1 rounded-xl py-4 transition-colors ${
                       checked
-                        ? 'border-green-200 bg-green-50'
-                        : 'border-gray-200 bg-white'
+                        ? 'border border-primary-800 bg-primary-800'
+                        : 'card'
                     }`}
                   >
-                    <span className="text-3xl">{cat.icon}</span>
-                    <span className="text-sm font-medium text-gray-700">{cat.name}</span>
+                    <span
+                      className={`flex h-12 w-12 items-center justify-center rounded-full text-3xl ${
+                        checked ? 'bg-white/15' : 'bg-primary-100'
+                      }`}
+                    >
+                      {cat.icon}
+                    </span>
+                    <span className={`text-sm font-medium ${checked ? 'text-white' : 'text-ink-600'}`}>
+                      {cat.name}
+                    </span>
                     {checked ? (
-                      <span className="flex items-center gap-0.5 text-xs text-green-600">
-                        <span>✓</span>
+                      <span className="flex items-center gap-1 text-xs font-medium text-gold-500">
+                        <CheckCircle2 size={14} strokeWidth={2.2} />
                         {checkin.note ? (
                           <span className="max-w-[80px] truncate">{checkin.note}</span>
                         ) : (
-                          <span>已打卡</span>
+                          <span>已完成</span>
                         )}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-400">未打卡</span>
+                      <span className="text-xs text-ink-400">未打卡</span>
                     )}
                     {/* 编辑/删除按钮：仅分类归属者可见 */}
                     {canEdit && (
@@ -321,16 +346,16 @@ function CheckinPage() {
                             setEditingCategory(cat)
                             setCategoryFormOpen(true)
                           }}
-                          className="text-xs text-gray-400 transition-colors hover:text-primary-600"
+                          className="text-ink-400 transition-colors hover:text-primary-600"
                         >
-                          ✏️
+                          <Pencil size={14} />
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(cat)}
-                          className="text-xs text-gray-400 transition-colors hover:text-red-500"
+                          className="text-ink-400 transition-colors hover:text-red-500"
                         >
-                          🗑️
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     )}
@@ -344,9 +369,9 @@ function CheckinPage() {
                   setEditingCategory(null)
                   setCategoryFormOpen(true)
                 }}
-                className="flex w-[calc(50%-0.375rem)] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-300 py-4 text-gray-400 transition-colors hover:border-primary-400 hover:text-primary-600"
+                className="flex w-[calc(50%-0.375rem)] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary-200 py-4 text-ink-400 transition-colors hover:border-primary-500 hover:text-primary-600"
               >
-                <span className="text-2xl">+</span>
+                <Plus size={20} />
                 <span className="text-sm">添加分类</span>
               </button>
             </>
@@ -357,20 +382,21 @@ function CheckinPage() {
           <button
             type="button"
             onClick={() => setMakeupOpen(true)}
-            className="flex-1 rounded-lg border border-primary-200 bg-primary-50 py-2.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary-200 bg-primary-100 py-2.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-200"
           >
-            📅 补卡
+            <CalendarClock size={16} />
+            申请补卡
           </button>
         </div>
       </div>
 
       {/* 下方：全员打卡动态 */}
       <div>
-        <h2 className="mb-3 text-base font-bold text-gray-900">全员打卡动态</h2>
+        <h2 className="section-title mb-3">全员打卡动态</h2>
         {loading ? (
-          <div className="py-8 text-center text-sm text-gray-400">加载中…</div>
+          <div className="py-8 text-center text-sm text-ink-400">加载中…</div>
         ) : allTodayCheckins.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">暂无打卡动态</div>
+          <div className="py-8 text-center text-sm text-ink-400">暂无打卡动态</div>
         ) : (
           <div className="space-y-3">
             {allTodayCheckins.map((userGroup) => {
@@ -381,7 +407,7 @@ function CheckinPage() {
               return (
                 <div
                   key={userGroup.user_id}
-                  className="overflow-hidden rounded-xl bg-white shadow-sm"
+                  className="card overflow-hidden"
                 >
                   <button
                     type="button"
@@ -392,43 +418,47 @@ function CheckinPage() {
                     className="flex w-full items-center justify-between px-4 py-3"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-ink-900">
                         {userGroup.username}
                       </span>
                       {isCurrentUser && (
-                        <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">
+                        <span className="rounded bg-gold-100 px-1.5 py-0.5 text-xs text-gold-700">
                           我
                         </span>
                       )}
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                      <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs text-ink-600">
                         {userGroup.checkins.length} 项
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400">
-                      {isExpanded ? '收起 ▲' : '展开 ▼'}
+                    <span className="flex items-center gap-0.5 text-xs text-ink-400">
+                      {isExpanded ? (
+                        <>收起 <ChevronUp size={12} /></>
+                      ) : (
+                        <>展开 <ChevronDown size={12} /></>
+                      )}
                     </span>
                   </button>
                   {isExpanded && (
-                    <div className="space-y-1 border-t border-gray-100 px-4 py-2">
+                    <div className="space-y-1 border-t border-primary-50 px-4 py-2">
                       {userGroup.checkins.map((item) => (
                         <div
                           key={item.id}
                           className="flex items-center gap-3 py-1.5"
                         >
-                          <span className="text-lg">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-base">
                             {item.category?.icon || '📌'}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-ink-600">
                               {item.category?.name || '未知分类'}
                             </span>
                             {item.note && (
-                              <p className="mt-0.5 truncate text-xs text-gray-500">
+                              <p className="mt-0.5 truncate text-xs text-ink-600">
                                 {item.note}
                               </p>
                             )}
                           </div>
-                          <span className="shrink-0 text-xs text-gray-400">
+                          <span className="shrink-0 text-xs text-ink-400">
                             {formatTime(item.created_at)}
                           </span>
                         </div>
@@ -497,10 +527,10 @@ function CheckinPage() {
             className="w-full max-w-xs rounded-2xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-center text-sm font-medium text-gray-900">
+            <p className="text-center text-sm font-medium text-ink-900">
               确认删除分类「{deleteTarget.name}」？
             </p>
-            <p className="mt-2 text-center text-xs text-gray-400">
+            <p className="mt-2 text-center text-xs text-ink-400">
               删除后该分类下的打卡记录将保留但分类信息会丢失
             </p>
             <div className="mt-5 flex gap-3">
@@ -508,7 +538,7 @@ function CheckinPage() {
                 type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>

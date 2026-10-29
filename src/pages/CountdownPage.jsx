@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
 import { useAuth } from '../context/AuthContext'
@@ -100,29 +101,28 @@ function CountdownPage() {
 
   return (
     <div className="px-4 py-6 pb-8">
-      <h1 className="text-xl font-bold text-gray-900">倒计时</h1>
+      <h1 className="text-xl font-bold text-ink-900">倒计时</h1>
 
       {loading ? (
         <div className="mt-12 flex items-center justify-center">
-          <span className="text-sm text-gray-400">加载中…</span>
+          <span className="text-sm text-ink-400">加载中…</span>
         </div>
       ) : (
         <div className="mt-4">
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-800">
-                全部倒计时
-              </h2>
+              <h2 className="section-title">全部倒计时</h2>
               <button
                 onClick={handleAdd}
-                className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+                className="flex items-center gap-1 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-600"
               >
-                + 新增
+                <Plus size={14} />
+                新增
               </button>
             </div>
             <div className="space-y-2.5">
               {list.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-400">
+                <p className="py-6 text-center text-sm text-ink-400">
                   暂无倒计时
                 </p>
               ) : (
@@ -160,14 +160,15 @@ function CountdownPage() {
             className="relative z-10 mx-6 w-full max-w-xs rounded-2xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-center text-sm text-gray-700">
+            <p className="text-center text-sm font-medium text-ink-900">
               确认删除该倒计时？
             </p>
             <div className="mt-5 flex gap-3">
               <button
+                type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>

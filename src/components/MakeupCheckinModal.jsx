@@ -148,13 +148,13 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
       onClick={handleOverlayClick}
     >
       <div className="mx-4 max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-center text-lg font-bold text-gray-900">补卡</h2>
+        <h2 className="mb-4 text-center text-lg font-bold text-ink-900">补卡</h2>
 
         {/* 选择分类 */}
         <div className="mb-4">
-          <label className="mb-2 block text-sm text-gray-600">选择分类</label>
+          <label className="mb-2 block text-sm text-ink-600">选择分类</label>
           {localCategories.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-400">暂无分类</p>
+            <p className="py-4 text-center text-sm text-ink-400">暂无分类</p>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {localCategories.map((cat) => (
@@ -164,11 +164,17 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
                   onClick={() => setSelectedCategoryId(cat.id)}
                   className={`flex min-w-[72px] flex-col items-center gap-1 rounded-lg border py-2.5 text-sm transition-colors ${
                     selectedCategoryId === cat.id
-                      ? 'border-primary-500 bg-primary-50 text-primary-600'
-                      : 'border-gray-200 text-gray-500'
+                      ? 'border-primary-500 bg-primary-100 text-primary-600'
+                      : 'border-primary-200 text-ink-600'
                   }`}
                 >
-                  <span className="text-xl">{cat.icon}</span>
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-base ${
+                      selectedCategoryId === cat.id ? 'bg-white' : 'bg-primary-100'
+                    }`}
+                  >
+                    {cat.icon}
+                  </span>
                   <span className="truncate">{cat.name}</span>
                 </button>
               ))}
@@ -178,7 +184,7 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
 
         {/* 选择日期 */}
         <div className="mb-4">
-          <label className="mb-2 block text-sm text-gray-600">选择日期（近7天）</label>
+          <label className="mb-2 block text-sm text-ink-600">选择日期（近7天）</label>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {last7Days.map((d) => {
               const disabled = isDateDisabled(d.dateStr)
@@ -191,10 +197,10 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
                   onClick={() => setSelectedDate(d.dateStr)}
                   className={`flex min-w-[72px] flex-col items-center gap-0.5 rounded-lg border py-2 px-2 text-xs transition-colors ${
                     selected
-                      ? 'border-primary-500 bg-primary-50 text-primary-600'
+                      ? 'border-primary-500 bg-primary-100 text-primary-600'
                       : disabled
-                        ? 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
-                        : 'border-gray-200 text-gray-600 hover:border-primary-300'
+                        ? 'cursor-not-allowed border-primary-50 bg-surface text-ink-400'
+                        : 'border-primary-200 text-ink-600 hover:border-primary-500'
                   }`}
                 >
                   <span className="font-medium">{d.weekday}</span>
@@ -208,16 +214,16 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
 
         {/* 备注输入 */}
         <div className="mb-4">
-          <label className="mb-1 block text-sm text-gray-600">备注（选填）</label>
+          <label className="mb-1 block text-sm text-ink-600">备注（选填）</label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={50}
             rows={3}
             placeholder="写点什么…（最多50字）"
-            className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition-colors focus:border-primary-500"
+            className="w-full resize-none rounded-lg border border-primary-200 px-3 py-2 text-sm outline-none transition-colors focus:border-primary-500"
           />
-          <p className="mt-1 text-right text-xs text-gray-400">{note.length}/50</p>
+          <p className="mt-1 text-right text-xs text-ink-400">{note.length}/50</p>
         </div>
 
         {/* 错误提示 */}
@@ -231,7 +237,7 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50 disabled:opacity-50"
           >
             取消
           </button>
@@ -242,7 +248,7 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
             className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
               submitting || !selectedDate || !selectedCategoryId
                 ? 'cursor-not-allowed bg-primary-400'
-                : 'bg-primary-600 hover:bg-primary-700'
+                : 'bg-primary-500 hover:bg-primary-600'
             }`}
           >
             {submitting ? '提交中…' : '确认补卡'}

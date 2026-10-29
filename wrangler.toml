@@ -5,3 +5,15 @@ compatibility_date = "2024-01-01"
 [assets]
 binding = "ASSETS"
 directory = "./dist"
+
+# 每日打卡提醒：UTC 13:00 = 北京时间 21:00
+# 注意 Cloudflare 的 cron 一律按 UTC 算，改时间记得减 8 小时
+[triggers]
+crons = ["0 13 * * *"]
+
+# 非敏感配置直接写这里；密钥类的一律用 Secret（见部署手册）
+# SUPABASE_URL 不是机密，写在这里省得再配一次
+[vars]
+SUPABASE_URL = "https://oifwgcxnwzhdvogfixib.supabase.co"
+PUSH_CHANNEL = "pushplus"
+SITE_URL = "https://check-intool.online"

@@ -248,7 +248,7 @@ function StatsPage() {
 
   return (
     <div className="px-4 py-6">
-      <h1 className="mb-4 text-xl font-bold text-gray-900">统计</h1>
+      <h1 className="mb-4 text-xl font-bold text-ink-900">统计</h1>
 
       {/* Tab 切换 */}
       <div className="mb-5 flex gap-2">
@@ -257,28 +257,31 @@ function StatsPage() {
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+            className={`relative flex-1 rounded-lg py-2 text-sm transition-colors ${
               activeTab === tab.key
-                ? 'bg-primary-600 text-white'
-                : 'bg-white text-gray-500 border border-gray-200'
+                ? 'bg-white font-medium text-primary-600'
+                : 'border border-primary-200 bg-white text-ink-600'
             }`}
           >
             {tab.label}
+            {activeTab === tab.key && (
+              <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-gold-500" />
+            )}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-gray-400">加载中…</div>
+        <div className="py-12 text-center text-sm text-ink-400">加载中…</div>
       ) : noCategories ? (
         /* 无分类空状态 */
         <div className="flex flex-col items-center py-16">
           <span className="mb-3 text-5xl">🏷️</span>
-          <p className="mb-4 text-sm text-gray-500">还没有分类，去添加分类吧</p>
+          <p className="mb-4 text-sm text-ink-600">还没有分类，去添加分类吧</p>
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="rounded-lg bg-primary-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+            className="rounded-lg bg-primary-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-600"
           >
             去添加分类
           </button>
@@ -287,11 +290,11 @@ function StatsPage() {
         /* 无打卡数据空状态 */
         <div className="flex flex-col items-center py-16">
           <span className="mb-3 text-5xl">📭</span>
-          <p className="mb-4 text-sm text-gray-500">还没有打卡记录，去打卡吧</p>
+          <p className="mb-4 text-sm text-ink-600">还没有打卡记录，去打卡吧</p>
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="rounded-lg bg-primary-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+            className="rounded-lg bg-primary-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-600"
           >
             去打卡
           </button>
@@ -302,22 +305,27 @@ function StatsPage() {
           {activeTab === 'user' && (
             <div className="space-y-3">
               {userStats.map((user, index) => (
-                <div
-                  key={user.userId}
-                  className="rounded-xl bg-white p-4 shadow-sm"
-                >
+                <div key={user.userId} className="card p-4">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">
                       {index === 0 && user.totalCount > 0 ? '🥇' : `#${index + 1}`}
                     </span>
-                    <span className="font-medium text-gray-900">{user.username}</span>
-                    <span className="ml-auto text-sm text-gray-500">
-                      总打卡 {user.totalCount} 次 · {user.streaks.totalDays || 0} 天
+                    <span className="font-medium text-ink-900">{user.username}</span>
+                    <span className="ml-auto text-sm text-ink-600">
+                      总打卡{' '}
+                      <span className="font-bold text-success-600">
+                        {user.totalCount}
+                      </span>{' '}
+                      次 ·{' '}
+                      <span className="font-bold text-success-600">
+                        {user.streaks.totalDays || 0}
+                      </span>{' '}
+                      天
                     </span>
                   </div>
 
                   {user.totalCount === 0 ? (
-                    <p className="mt-2 text-xs text-gray-400">暂无记录</p>
+                    <p className="mt-2 text-xs text-ink-400">暂无记录</p>
                   ) : (
                     <>
                       {/* 各分类次数（仅该用户自己的分类） */}
@@ -325,10 +333,17 @@ function StatsPage() {
                         {user.userCategories.map((cat) => (
                           <span
                             key={cat.id}
-                            className="rounded bg-primary-50 px-2 py-0.5 text-xs text-primary-600"
+                            className="rounded bg-primary-100 px-2 py-0.5 text-xs text-ink-600"
                           >
-                            {cat.icon} {cat.name} {user.categoryCounts[cat.id] || 0}次 ·{' '}
-                            {user.streaks.categoryDays[cat.id] || 0}天
+                            {cat.icon} {cat.name}{' '}
+                            <span className="font-medium text-primary-600">
+                              {user.categoryCounts[cat.id] || 0}
+                            </span>
+                            次 ·{' '}
+                            <span className="font-medium text-primary-600">
+                              {user.streaks.categoryDays[cat.id] || 0}
+                            </span>
+                            天
                           </span>
                         ))}
                       </div>
@@ -336,21 +351,36 @@ function StatsPage() {
                       {/* 孤儿记录提示：分类被删过 / category_id 丢失的打卡 */}
                       {user.orphanCount > 0 && (
                         <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                          ⚠️ 有 {user.orphanCount} 条打卡没关联到现有分类（分类可能已被删除重建）
+                          ⚠️ 有{' '}
+                          <span className="font-bold">{user.orphanCount}</span>{' '}
+                          条打卡没关联到现有分类（分类可能已被删除重建）
                         </p>
                       )}
 
                       {/* 累计天数 / 连续天数（两者分开写清，避免把「连续」误读成「累计」） */}
-                      <div className="mt-3 border-t border-gray-100 pt-3">
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <span className="font-medium text-gray-700">
-                            🔥 连续 {user.streaks.totalStreak} 天
+                      <div className="mt-3 border-t border-primary-50 pt-3">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-400">
+                          <span>
+                            🔥 连续{' '}
+                            <span className="font-bold text-success-600">
+                              {user.streaks.totalStreak}
+                            </span>{' '}
+                            天
                           </span>
-                          <span>累计 {user.streaks.totalDays || 0} 天</span>
+                          <span>
+                            累计{' '}
+                            <span className="font-bold text-success-600">
+                              {user.streaks.totalDays || 0}
+                            </span>{' '}
+                            天
+                          </span>
                           {user.userCategories.map((cat) => (
                             <span key={cat.id}>
                               {cat.icon} {cat.name} 连续{' '}
-                              {user.streaks.categoryStreaks[cat.id] || 0} 天
+                              <span className="font-bold text-success-600">
+                                {user.streaks.categoryStreaks[cat.id] || 0}
+                              </span>{' '}
+                              天
                             </span>
                           ))}
                         </div>
@@ -372,36 +402,47 @@ function StatsPage() {
                     key={range.key}
                     type="button"
                     onClick={() => setTimeRange(range.key)}
-                    className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors ${
+                    className={`relative flex-1 rounded-lg py-1.5 text-sm transition-colors ${
                       timeRange === range.key
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'bg-white text-gray-500 border border-gray-200'
+                        ? 'bg-primary-100 font-medium text-primary-600'
+                        : 'border border-primary-200 bg-white text-ink-600'
                     }`}
                   >
                     {range.label}
+                    {timeRange === range.key && (
+                      <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-gold-500" />
+                    )}
                   </button>
                 ))}
               </div>
 
               {/* 总次数 + 各用户分类次数 */}
-              <div className="mb-4 rounded-xl bg-white p-4 shadow-sm">
-                <div className="mb-3 text-sm font-bold text-gray-900">
-                  全员打卡总次数：{timeStats.totalCount}
-                </div>
+              <div className="card mb-4 p-4">
+                <h2 className="section-title mb-3">
+                  全员打卡总次数：
+                  <span className="font-bold text-success-600">
+                    {timeStats.totalCount}
+                  </span>
+                </h2>
                 {timeStats.userBreakdown.map((ub) => (
                   <div key={ub.userId} className="mb-3 last:mb-0">
-                    <div className="mb-1.5 flex items-center gap-2 text-xs text-gray-600">
-                      <span className="font-medium text-gray-700">{ub.username}</span>
-                      <span className="text-gray-400">{ub.userTotal} 次</span>
+                    <div className="mb-1.5 flex items-center gap-2 text-xs text-ink-600">
+                      <span className="font-medium text-ink-900">{ub.username}</span>
+                      <span>
+                        <span className="font-bold text-success-600">
+                          {ub.userTotal}
+                        </span>{' '}
+                        次
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {ub.categories.map((cat) => (
                         <div
                           key={cat.id}
-                          className="flex-1 rounded-lg bg-gray-50 py-2 text-center"
+                          className="flex-1 rounded-lg bg-surface py-2 text-center"
                         >
-                          <div className="text-xs text-gray-500">{cat.icon} {cat.name}</div>
-                          <div className="mt-0.5 text-lg font-bold text-gray-900">
+                          <div className="text-xs text-ink-600">{cat.icon} {cat.name}</div>
+                          <div className="mt-0.5 text-lg font-bold text-success-600">
                             {ub.counts[cat.id] || 0}
                           </div>
                         </div>
@@ -412,8 +453,8 @@ function StatsPage() {
               </div>
 
               {/* 每日打卡趋势图 */}
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <div className="mb-3 text-sm font-bold text-gray-900">每日打卡趋势</div>
+              <div className="card p-4">
+                <h2 className="section-title mb-3">每日打卡趋势</h2>
                 <div className="flex items-end gap-1" style={{ height: '140px' }}>
                   {timeStats.days.map((day) => {
                     const barHeight = timeStats.maxCount > 0
@@ -425,7 +466,7 @@ function StatsPage() {
                         className="flex flex-1 flex-col items-center justify-end"
                         style={{ height: '100%' }}
                       >
-                        <span className="mb-0.5 text-xs text-gray-500">
+                        <span className="mb-0.5 text-xs text-ink-600">
                           {day.count > 0 ? day.count : ''}
                         </span>
                         <div
@@ -443,7 +484,7 @@ function StatsPage() {
                   {timeStats.days.map((day, idx) => (
                     <div
                       key={day.dateStr}
-                      className="flex-1 text-center text-xs text-gray-400"
+                      className="flex-1 text-center text-xs text-ink-400"
                     >
                       {/* 月份模式下每隔几天显示一次标签，避免拥挤 */}
                       {timeRange === 'month' && timeStats.days.length > 10
@@ -462,16 +503,21 @@ function StatsPage() {
           {activeTab === 'category' && (
             <div className="space-y-4">
               {categoryStats.map((userItem) => (
-                <div key={userItem.userId} className="rounded-xl bg-white p-4 shadow-sm">
+                <div key={userItem.userId} className="card p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="font-bold text-gray-900">{userItem.username}</span>
-                    <span className="ml-auto text-sm text-gray-500">
-                      总打卡 {userItem.totalCheckins} 次
+                    <span className="h-3.5 w-[3px] rounded-full bg-gold-500" />
+                    <span className="font-bold text-ink-900">{userItem.username}</span>
+                    <span className="ml-auto text-sm text-ink-600">
+                      总打卡{' '}
+                      <span className="font-bold text-success-600">
+                        {userItem.totalCheckins}
+                      </span>{' '}
+                      次
                     </span>
                   </div>
 
                   {userItem.categories.length === 0 ? (
-                    <p className="py-2 text-xs text-gray-400">暂无分类</p>
+                    <p className="py-2 text-xs text-ink-400">暂无分类</p>
                   ) : (
                     <div className="space-y-2">
                       {userItem.categories.map((cat, idx) => (
@@ -479,18 +525,25 @@ function StatsPage() {
                           key={cat.id}
                           className="flex items-center gap-2"
                         >
-                          <span className="w-6 text-center text-sm text-gray-500">
+                          <span className="w-6 text-center text-sm text-ink-600">
                             {idx === 0 && cat.count > 0 ? '🥇' : idx + 1}
                           </span>
                           <span className="text-lg">{cat.icon}</span>
-                          <span className="flex-1 text-sm text-gray-700">
+                          <span className="flex-1 text-sm text-ink-600">
                             {cat.name}
                           </span>
-                          <span className="text-sm text-gray-400">
-                            累计 {cat.days} 天
+                          <span className="text-xs text-ink-400">
+                            累计{' '}
+                            <span className="font-bold text-success-600">
+                              {cat.days}
+                            </span>{' '}
+                            天
                           </span>
-                          <span className="w-16 text-right text-sm font-medium text-gray-900">
-                            {cat.count} 次
+                          <span className="w-16 text-right text-sm">
+                            <span className="font-bold text-success-600">
+                              {cat.count}
+                            </span>{' '}
+                            次
                           </span>
                         </div>
                       ))}
@@ -500,7 +553,9 @@ function StatsPage() {
                   {/* 孤儿记录提示 */}
                   {userItem.orphanCount > 0 && (
                     <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                      ⚠️ 另有 {userItem.orphanCount} 条打卡没关联到现有分类（分类可能已被删除重建）
+                      ⚠️ 另有{' '}
+                      <span className="font-bold">{userItem.orphanCount}</span>{' '}
+                      条打卡没关联到现有分类（分类可能已被删除重建）
                     </p>
                   )}
                 </div>

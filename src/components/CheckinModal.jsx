@@ -99,25 +99,25 @@ export default function CheckinModal({ isOpen, onClose, category, mode, existing
         <div className="mb-1 text-center">
           <span className="text-4xl">{catIcon}</span>
         </div>
-        <h2 className="mb-1 text-center text-lg font-bold text-gray-900">
+        <h2 className="mb-1 text-center text-lg font-bold text-ink-900">
           {catName}打卡
         </h2>
-        <p className="mb-4 text-center text-xs text-gray-400">
+        <p className="mb-4 text-center text-xs text-ink-400">
           {formatChineseDate(todayStr)}
         </p>
 
         {/* 备注输入 */}
         <div className="mb-4">
-          <label className="mb-1 block text-sm text-gray-600">备注（选填）</label>
+          <label className="mb-1 block text-sm text-ink-600">备注（选填）</label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={50}
             rows={3}
             placeholder="写点什么…（最多50字）"
-            className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition-colors focus:border-primary-500"
+            className="w-full resize-none rounded-lg border border-primary-200 px-3 py-2 text-sm outline-none transition-colors focus:border-primary-500"
           />
-          <p className="mt-1 text-right text-xs text-gray-400">{note.length}/50</p>
+          <p className="mt-1 text-right text-xs text-ink-400">{note.length}/50</p>
         </div>
 
         {/* 错误提示 */}
@@ -131,7 +131,7 @@ export default function CheckinModal({ isOpen, onClose, category, mode, existing
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50 disabled:opacity-50"
           >
             取消
           </button>
@@ -142,7 +142,7 @@ export default function CheckinModal({ isOpen, onClose, category, mode, existing
             className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
               submitting
                 ? 'bg-primary-400'
-                : 'bg-primary-600 hover:bg-primary-700'
+                : 'bg-primary-500 hover:bg-primary-600'
             }`}
           >
             {submitting ? '提交中…' : mode === 'create' ? '确认打卡' : '确认修改'}

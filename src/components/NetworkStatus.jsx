@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { WifiOff } from 'lucide-react'
 import { showToast } from './Toast'
 
 /**
@@ -33,7 +34,8 @@ export default function NetworkStatus() {
   if (isOnline) return null
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-[100] bg-red-500 px-4 py-2 text-center text-sm font-medium text-white shadow-md">
+    <div className="fixed left-0 right-0 top-0 z-[100] flex items-center justify-center gap-2 bg-red-500 px-4 py-2 text-center text-sm font-medium text-white shadow-md">
+      <WifiOff size={16} className="shrink-0" />
       网络已断开，请检查网络连接
     </div>
   )

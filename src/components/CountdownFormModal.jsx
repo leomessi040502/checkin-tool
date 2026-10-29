@@ -87,14 +87,14 @@ function CountdownFormModal({
         className="relative z-10 w-full max-w-mobile rounded-t-2xl bg-white p-5 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-gray-900">
+        <h2 className="mb-4 text-lg font-bold text-ink-900">
           {isEdit ? '编辑倒计时' : '新增倒计时'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 事项名称 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-600">
               事项名称
             </label>
             <input
@@ -103,16 +103,16 @@ function CountdownFormModal({
               onChange={(e) => setTitle(e.target.value)}
               maxLength={30}
               placeholder="请输入事项名称"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
-            <p className="mt-1 text-right text-xs text-gray-400">
+            <p className="mt-1 text-right text-xs text-ink-400">
               {title.length}/30
             </p>
           </div>
 
           {/* 目标日期 */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-600">
               目标日期
             </label>
             <input
@@ -120,7 +120,7 @@ function CountdownFormModal({
               value={targetDate}
               min={today}
               onChange={(e) => setTargetDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
             />
           </div>
 
@@ -133,7 +133,7 @@ function CountdownFormModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50"
+              className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
             >
               取消
             </button>
@@ -143,7 +143,7 @@ function CountdownFormModal({
               className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
                 submitting
                   ? 'cursor-not-allowed bg-primary-300 text-white'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-primary-500 text-white hover:bg-primary-600'
               }`}
             >
               {submitting ? '提交中…' : isEdit ? '保存' : '确认'}

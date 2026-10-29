@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
 import { useAuth } from '../context/AuthContext'
@@ -262,26 +263,27 @@ function GoalsPage() {
 
   return (
     <div className="px-4 py-6 pb-8">
-      <h1 className="text-xl font-bold text-gray-900">目标</h1>
+      <h1 className="text-xl font-bold text-ink-900">目标</h1>
 
       {loading ? (
         <div className="mt-12 flex items-center justify-center">
-          <span className="text-sm text-gray-400">加载中…</span>
+          <span className="text-sm text-ink-400">加载中…</span>
         </div>
       ) : (
         <div className="mt-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-800">全员目标</h2>
+            <h2 className="section-title">全员目标</h2>
             <button
               onClick={handleAdd}
-              className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+              className="flex items-center gap-1 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-600"
             >
-              + 新增
+              <Plus size={14} />
+              新增
             </button>
           </div>
 
           {goals.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-ink-400">
               暂无目标，点击新增创建吧
             </p>
           ) : (
@@ -294,11 +296,11 @@ function GoalsPage() {
                 const isCurrentUser = user?.id === userId
 
                 return (
-                  <section key={userId} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
-                    <h3 className="mb-3 text-sm font-semibold text-gray-800">
+                  <section key={userId} className="rounded-xl border border-primary-200 bg-surface p-3">
+                    <h3 className="mb-3 text-sm font-semibold text-ink-900">
                       {username}
                       {isCurrentUser && (
-                        <span className="ml-1.5 rounded bg-primary-100 px-1.5 py-0.5 text-xs text-primary-600">
+                        <span className="ml-1.5 rounded-full bg-gold-100 px-2 py-0.5 text-xs text-gold-700">
                           我
                         </span>
                       )}
@@ -306,7 +308,7 @@ function GoalsPage() {
 
                     {periodicGoals.length > 0 && (
                       <div className="mb-3">
-                        <h4 className="mb-2 text-xs font-medium text-gray-500">周期目标</h4>
+                        <h4 className="mb-2 text-xs font-medium text-ink-600">周期目标</h4>
                         <div className="space-y-2.5">
                           {periodicGoals.map(renderGoalCard)}
                         </div>
@@ -315,7 +317,7 @@ function GoalsPage() {
 
                     {lifelongGoals.length > 0 && (
                       <div>
-                        <h4 className="mb-2 text-xs font-medium text-gray-500">长期目标</h4>
+                        <h4 className="mb-2 text-xs font-medium text-ink-600">长期目标</h4>
                         <div className="space-y-2.5">
                           {lifelongGoals.map(renderGoalCard)}
                         </div>
@@ -323,7 +325,7 @@ function GoalsPage() {
                     )}
 
                     {periodicGoals.length === 0 && lifelongGoals.length === 0 && (
-                      <p className="py-3 text-center text-xs text-gray-400">暂无目标</p>
+                      <p className="py-3 text-center text-xs text-ink-400">暂无目标</p>
                     )}
                   </section>
                 )
@@ -353,12 +355,15 @@ function GoalsPage() {
             className="relative z-10 mx-6 w-full max-w-xs rounded-2xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-center text-sm text-gray-700">确认删除该目标？</p>
+            <p className="text-center text-sm font-medium text-ink-900">
+              确认删除该目标？
+            </p>
             <div className="mt-5 flex gap-3">
               <button
+                type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>

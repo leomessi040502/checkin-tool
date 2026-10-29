@@ -206,12 +206,12 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
         className="relative z-10 max-h-[90vh] w-full max-w-mobile overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-bold text-gray-900">管理分类</h2>
+        <h2 className="mb-4 text-lg font-bold text-ink-900">管理分类</h2>
 
         {/* 分类列表 */}
         <div className="mb-4 space-y-2">
           {categories.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-ink-400">
               暂无分类，点击下方添加
             </p>
           ) : (
@@ -220,18 +220,18 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                 {editingId === cat.id ? (
                   <div className="rounded-xl border border-primary-200 bg-primary-50 p-3">
                     <div className="mb-2">
-                      <label className="mb-1 block text-xs text-gray-500">分类名称</label>
+                      <label className="mb-1 block text-xs text-ink-600">分类名称</label>
                       <input
                         type="text"
                         value={editName}
                         onChange={(e) => { setEditName(e.target.value); setEditError('') }}
                         maxLength={20}
                         placeholder="2-20字符"
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
+                        className="w-full rounded-lg border border-primary-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
                       />
                     </div>
                     <div className="mb-2">
-                      <label className="mb-1 block text-xs text-gray-500">选择图标</label>
+                      <label className="mb-1 block text-xs text-ink-600">选择图标</label>
                       <div className="flex flex-wrap gap-1.5">
                         {PRESET_ICONS.map((icon) => (
                           <button
@@ -241,7 +241,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                             className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-colors ${
                               editIcon === icon
                                 ? 'bg-primary-200 ring-2 ring-primary-500'
-                                : 'bg-gray-100 hover:bg-gray-200'
+                                : 'bg-primary-50 hover:bg-primary-100'
                             }`}
                           >
                             {icon}
@@ -257,7 +257,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                         type="button"
                         onClick={() => setEditingId(null)}
                         disabled={editSubmitting}
-                        className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50"
+                        className="flex-1 rounded-lg border border-primary-200 bg-white py-2 text-xs font-medium text-ink-600 transition-colors hover:bg-primary-50"
                       >
                         取消
                       </button>
@@ -266,7 +266,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                         onClick={handleEditConfirm}
                         disabled={editSubmitting}
                         className={`flex-1 rounded-lg py-2 text-xs font-medium text-white transition-colors ${
-                          editSubmitting ? 'bg-primary-300' : 'bg-primary-600 hover:bg-primary-700'
+                          editSubmitting ? 'bg-primary-300' : 'bg-primary-500 hover:bg-primary-600'
                         }`}
                       >
                         {editSubmitting ? '保存中…' : '保存'}
@@ -275,22 +275,24 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                   </div>
                 ) : (
                   /* 展示模式 */
-                  <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
-                    <span className="text-2xl">{cat.icon}</span>
-                    <span className="flex-1 text-sm font-medium text-gray-800">
+                  <div className="card flex items-center gap-3 px-4 py-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-lg">
+                      {cat.icon}
+                    </span>
+                    <span className="flex-1 text-sm font-medium text-ink-900">
                       {cat.name}
                     </span>
                     <button
                       type="button"
                       onClick={() => startEdit(cat)}
-                      className="rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600"
+                      className="rounded-md px-2 py-1 text-xs text-ink-600 transition-colors hover:bg-primary-50 hover:text-primary-600"
                     >
                       编辑
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeleteTarget(cat)}
-                      className="rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-500"
+                      className="rounded-md px-2 py-1 text-xs text-ink-600 transition-colors hover:bg-primary-50 hover:text-red-500"
                     >
                       删除
                     </button>
@@ -305,19 +307,19 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
         {showAdd ? (
           <div className="rounded-xl border border-primary-200 bg-primary-50 p-3">
             <div className="mb-2">
-              <label className="mb-1 block text-xs text-gray-500">分类名称</label>
+              <label className="mb-1 block text-xs text-ink-600">分类名称</label>
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => { setNewName(e.target.value); setError('') }}
                 maxLength={20}
                 placeholder="2-20字符"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
+                className="w-full rounded-lg border border-primary-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
               />
-              <p className="mt-1 text-right text-xs text-gray-400">{newName.length}/20</p>
+              <p className="mt-1 text-right text-xs text-ink-400">{newName.length}/20</p>
             </div>
             <div className="mb-2">
-              <label className="mb-1 block text-xs text-gray-500">选择图标</label>
+              <label className="mb-1 block text-xs text-ink-600">选择图标</label>
               <div className="flex flex-wrap gap-1.5">
                 {PRESET_ICONS.map((icon) => (
                   <button
@@ -327,7 +329,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                     className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-colors ${
                       newIcon === icon
                         ? 'bg-primary-200 ring-2 ring-primary-500'
-                        : 'bg-gray-100 hover:bg-gray-200'
+                        : 'bg-primary-50 hover:bg-primary-100'
                     }`}
                   >
                     {icon}
@@ -343,7 +345,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                 type="button"
                 onClick={() => { setShowAdd(false); setNewName(''); setNewIcon('📚'); setError('') }}
                 disabled={submitting}
-                className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2 text-xs font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>
@@ -352,7 +354,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                 onClick={handleAdd}
                 disabled={submitting}
                 className={`flex-1 rounded-lg py-2 text-xs font-medium text-white transition-colors ${
-                  submitting ? 'bg-primary-300' : 'bg-primary-600 hover:bg-primary-700'
+                  submitting ? 'bg-primary-300' : 'bg-primary-500 hover:bg-primary-600'
                 }`}
               >
                 {submitting ? '添加中…' : '确认添加'}
@@ -363,7 +365,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="w-full rounded-lg border border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:border-primary-400 hover:text-primary-600"
+            className="w-full rounded-lg border border-dashed border-primary-200 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:border-primary-500 hover:text-primary-600"
           >
             + 添加分类
           </button>
@@ -373,7 +375,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+          className="mt-4 w-full rounded-lg bg-primary-50 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-100"
         >
           关闭
         </button>
@@ -388,10 +390,10 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
               className="w-full max-w-xs rounded-2xl bg-white p-5"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-center text-sm font-medium text-gray-900">
+              <p className="text-center text-sm font-medium text-ink-900">
                 确认删除分类「{deleteTarget.name}」？
               </p>
-              <p className="mt-2 text-center text-xs text-gray-400">
+              <p className="mt-2 text-center text-xs text-ink-400">
                 删除分类不会删除已有打卡记录
               </p>
               <div className="mt-5 flex gap-3">
@@ -399,7 +401,7 @@ export default function CategoryManagerModal({ isOpen, categories, userId, onClo
                   type="button"
                   onClick={() => setDeleteTarget(null)}
                   disabled={deleting}
-                  className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50"
+                  className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
                 >
                   取消
                 </button>

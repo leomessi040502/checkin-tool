@@ -198,43 +198,49 @@ function ProfilePage() {
   return (
     <div className="px-4 py-6">
       {/* 用户信息卡片 */}
-      <div className="mb-6 flex flex-col items-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 px-6 py-8 text-white">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-3xl">
-          👤
+      <div className="mb-6 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 px-6 py-8 text-white">
+        <div className="flex items-center gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-800 text-lg font-semibold text-white">
+            {user?.username?.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-bold">{user?.username || '用户'}</h1>
+            {createdAt && (
+              <p className="mt-1 text-xs text-white/70">
+                加入于 {formatChineseDate(createdAt)}
+              </p>
+            )}
+          </div>
         </div>
-        <h1 className="mt-3 text-lg font-bold">{user?.username || '用户'}</h1>
-        {createdAt && (
-          <p className="mt-1 text-xs text-white/70">
-            加入于 {formatChineseDate(createdAt)}
-          </p>
-        )}
       </div>
 
       {/* 打卡统计 */}
-      <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-gray-900">打卡统计</h2>
+      <div className="card mb-6 p-4">
+        <h2 className="section-title mb-3">打卡统计</h2>
         {loading ? (
-          <div className="py-6 text-center text-sm text-gray-400">加载中…</div>
+          <div className="py-6 text-center text-sm text-ink-400">加载中…</div>
         ) : (
           <>
             {/* 累计总数 */}
-            <div className="mb-3 flex items-center justify-between rounded-xl bg-primary-50 px-4 py-3">
-              <span className="text-sm text-gray-600">累计打卡</span>
-              <span className="text-xl font-bold text-primary-600">{stats.total} 次</span>
+            <div className="mb-3 flex items-center justify-between border-l-[3px] border-primary-600 bg-primary-50 px-4 py-3 pl-3">
+              <span className="text-sm text-ink-600">累计打卡</span>
+              <span className="text-xl font-bold text-primary-800">{stats.total} 次</span>
             </div>
             {/* 分类统计 */}
             {categories.length === 0 ? (
-              <div className="py-4 text-center text-xs text-gray-400">还没有分类，去打卡页添加吧</div>
+              <div className="py-4 text-center text-xs text-ink-400">还没有分类，去打卡页添加吧</div>
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {categories.map((cat) => (
                   <div
                     key={cat.id}
-                    className="flex flex-col items-center rounded-xl bg-gray-50 py-3"
+                    className="card flex flex-col items-center border-l-[3px] border-primary-600 py-3 pl-3"
                   >
-                    <span className="text-2xl">{cat.icon}</span>
-                    <span className="mt-1 text-xs text-gray-500">{cat.name}</span>
-                    <span className="text-base font-bold text-gray-900">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 text-lg">
+                      {cat.icon}
+                    </span>
+                    <span className="mt-1 text-xs text-ink-400">{cat.name}</span>
+                    <span className="text-base font-bold text-primary-800">
                       {stats.byCategory[cat.id] || 0} 次
                     </span>
                   </div>
@@ -246,24 +252,26 @@ function ProfilePage() {
       </div>
 
       {/* 设置区域 */}
-      <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-bold text-gray-900">账号设置</h2>
-        <button
-          type="button"
-          onClick={() => { setNewUsername(user?.username || ''); setUsernameError(''); setShowUsernameModal(true) }}
-          className="flex w-full items-center justify-between border-b border-gray-100 py-3 text-sm text-gray-700"
-        >
-          <span>修改用户名</span>
-          <span className="text-gray-400">›</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { setNewPassword(''); setConfirmPassword(''); setPasswordError(''); setShowPasswordModal(true) }}
-          className="flex w-full items-center justify-between py-3 text-sm text-gray-700"
-        >
-          <span>修改密码</span>
-          <span className="text-gray-400">›</span>
-        </button>
+      <div className="card mb-6 p-4">
+        <h2 className="section-title mb-3">账号设置</h2>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => { setNewUsername(user?.username || ''); setUsernameError(''); setShowUsernameModal(true) }}
+            className="flex w-full items-center justify-between rounded-lg border border-primary-200 bg-white px-3 py-3 text-sm text-ink-600 transition-colors hover:bg-primary-50"
+          >
+            <span>修改用户名</span>
+            <span className="text-ink-400">›</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setNewPassword(''); setConfirmPassword(''); setPasswordError(''); setShowPasswordModal(true) }}
+            className="flex w-full items-center justify-between rounded-lg border border-primary-200 bg-white px-3 py-3 text-sm text-ink-600 transition-colors hover:bg-primary-50"
+          >
+            <span>修改密码</span>
+            <span className="text-ink-400">›</span>
+          </button>
+        </div>
       </div>
 
       {/* 退出登录按钮 */}
@@ -280,7 +288,7 @@ function ProfilePage() {
       <button
         type="button"
         onClick={() => { setDeletePassword(''); setDeleteError(''); setShowDeleteModal(true) }}
-        className="mt-3 w-full py-2.5 text-center text-xs text-gray-400 underline transition-colors hover:text-red-500"
+        className="mt-3 w-full py-2.5 text-center text-xs text-ink-400 underline transition-colors hover:text-red-500"
       >
         注销账号
       </button>
@@ -295,7 +303,7 @@ function ProfilePage() {
             className="w-full max-w-xs rounded-2xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-center text-sm font-medium text-gray-900">
+            <p className="text-center text-sm font-medium text-ink-900">
               确认退出登录？
             </p>
             <div className="mt-5 flex gap-3">
@@ -303,7 +311,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => setShowConfirm(false)}
                 disabled={loggingOut}
-                className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>
@@ -330,16 +338,16 @@ function ProfilePage() {
             className="w-full max-w-xs rounded-2xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-4 text-center text-base font-bold text-gray-900">修改用户名</h3>
+            <h3 className="mb-4 text-center text-base font-bold text-ink-900">修改用户名</h3>
             <input
               type="text"
               value={newUsername}
               onChange={(e) => { setNewUsername(e.target.value); setUsernameError('') }}
               maxLength={20}
               placeholder="输入新用户名"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none focus:border-primary-500"
             />
-            <div className="mt-1 text-right text-xs text-gray-400">{newUsername.length}/20</div>
+            <div className="mt-1 text-right text-xs text-ink-400">{newUsername.length}/20</div>
             {usernameError && (
               <p className="mb-2 text-xs text-red-500">{usernameError}</p>
             )}
@@ -348,7 +356,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => setShowUsernameModal(false)}
                 disabled={updatingUsername}
-                className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>
@@ -356,7 +364,11 @@ function ProfilePage() {
                 type="button"
                 onClick={handleUpdateUsername}
                 disabled={updatingUsername}
-                className="flex-1 rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
+                  updatingUsername
+                    ? 'cursor-not-allowed bg-primary-300'
+                    : 'bg-primary-500 hover:bg-primary-600'
+                }`}
               >
                 {updatingUsername ? '保存中…' : '确认'}
               </button>
@@ -375,14 +387,14 @@ function ProfilePage() {
             className="w-full max-w-xs rounded-2xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-4 text-center text-base font-bold text-gray-900">修改密码</h3>
+            <h3 className="mb-4 text-center text-base font-bold text-ink-900">修改密码</h3>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setPasswordError('') }}
               maxLength={20}
               placeholder="输入新密码（6-20字符）"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-primary-500"
+              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none focus:border-primary-500"
             />
             <input
               type="password"
@@ -390,7 +402,7 @@ function ProfilePage() {
               onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError('') }}
               maxLength={20}
               placeholder="再次输入新密码"
-              className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-primary-500"
+              className="mt-3 w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none focus:border-primary-500"
             />
             {passwordError && (
               <p className="mb-2 mt-2 text-xs text-red-500">{passwordError}</p>
@@ -400,7 +412,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => setShowPasswordModal(false)}
                 disabled={updatingPassword}
-                className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>
@@ -408,7 +420,11 @@ function ProfilePage() {
                 type="button"
                 onClick={handleUpdatePassword}
                 disabled={updatingPassword}
-                className="flex-1 rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                className={`flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
+                  updatingPassword
+                    ? 'cursor-not-allowed bg-primary-300'
+                    : 'bg-primary-500 hover:bg-primary-600'
+                }`}
               >
                 {updatingPassword ? '保存中…' : '确认'}
               </button>
@@ -430,14 +446,14 @@ function ProfilePage() {
             <h3 className="mb-2 text-center text-base font-bold text-red-600">
               注销账号
             </h3>
-            <p className="mb-3 text-center text-xs text-gray-500">
+            <p className="mb-3 text-center text-xs text-ink-600">
               注销后所有数据将永久删除，不可恢复
             </p>
-            <p className="mb-2 text-center text-xs text-gray-400">
+            <p className="mb-2 text-center text-xs text-ink-400">
               打卡记录、分类、目标、倒计时都将被清除
             </p>
             <div className="mb-2">
-              <label className="mb-1 block text-xs text-gray-500">
+              <label className="mb-1 block text-xs text-ink-600">
                 请输入密码确认
               </label>
               <input
@@ -446,7 +462,7 @@ function ProfilePage() {
                 onChange={(e) => { setDeletePassword(e.target.value); setDeleteError('') }}
                 maxLength={20}
                 placeholder="输入密码"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-red-500"
+                className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none focus:border-red-500"
               />
             </div>
             {deleteError && (
@@ -457,7 +473,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={deletingAccount}
-                className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200"
+                className="flex-1 rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
               >
                 取消
               </button>

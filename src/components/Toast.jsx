@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { CheckCircle2, XCircle } from 'lucide-react'
 
 // 全局 toast 控制器，允许非 React 代码（如 apiWrapper）触发提示
 let _setToastFn = null
@@ -15,9 +16,9 @@ export function showToast(message, type = 'error') {
 }
 
 const TYPE_STYLES = {
-  success: 'bg-green-600',
-  error: 'bg-red-500',
-  info: 'bg-gray-800',
+  success: 'bg-primary-800 text-white',
+  error: 'bg-red-500 text-white',
+  info: 'bg-primary-800 text-white',
 }
 
 /**
@@ -46,8 +47,13 @@ export default function Toast() {
 
   return (
     <div
-      className={`fixed left-1/2 top-4 z-[100] max-w-[90%] -translate-x-1/2 rounded-lg px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg ${TYPE_STYLES[toast.type] || TYPE_STYLES.info}`}
+      className={`fixed left-1/2 top-4 z-[100] flex max-w-[90%] -translate-x-1/2 items-center gap-2 rounded-lg px-4 py-2.5 text-center text-sm font-medium shadow-lg ${TYPE_STYLES[toast.type] || TYPE_STYLES.info}`}
     >
+      {toast.type === 'error' ? (
+        <XCircle size={16} className="shrink-0" />
+      ) : (
+        <CheckCircle2 size={16} className="shrink-0" />
+      )}
       {toast.message}
     </div>
   )
