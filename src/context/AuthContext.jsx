@@ -138,13 +138,41 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  /** 修改用户名 */
+  /**
+   * 修改用户名
+   *
+   * 注意：用户名同时是登录凭据的一部分（登录邮箱 = `<username>@checkin.local`）。
+   * 因此必须走 update_own_username() RPC 同步更新 profiles.username 与 auth.users.email，
+   * 否则改名后新名字在别的设备上登不上（历史 bug）。
+   * 若迁移 009 尚未执行（RPC 不存在，PGRST202 / 42883），降级为旧的"仅改显示名"逻辑。
+   */
   const updateUsername = async (newUsername) => {
     if (!user) throw new Error('未登录')
 
     // 校验用户名格式
     if (!newUsername || newUsername.length < 2 || newUsername.length > 20) {
       throw new Error('用户名需2-20字符')
+    }
+
+    // 1. 优先：走 RPC 同步昵称与登录邮箱
+    const { error: rpcError } = await withTimeoutToast(
+      supabase.rpc('update_own_username', { p_username: newUsername }),
+    )
+
+    if (!rpcError) {
+      setUser({ ...user, username: newUsername })
+      return
+    }
+
+    // 2. 重名等明确错误：直接抛给页面提示
+    if (String(rpcError.message || '').includes('USERNAME_EXISTS')) {
+      throw new Error('USERNAME_EXISTS')
+    }
+
+    // 3. RPC 不存在（迁移未执行）→ 降级为旧逻辑：仅更新 profiles 显示名
+    const fnMissing = rpcError.code === 'PGRST202' || rpcError.code === '42883'
+    if (!fnMissing) {
+      throw rpcError
     }
 
     // 检查用户名是否已被使用（排除自己）
