@@ -11,7 +11,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
  *
  * @param {boolean} isOpen - 是否打开
  * @param {string} value - 当前已选日期 YYYY-MM-DD
- * @param {string} max - 可选的最大日期（一般是今天）
+ * @param {string} min - 可选的最小日期（一般传今天，用于选未来日期的场景；不传=无下限）
+ * @param {string} max - 可选的最大日期（一般是今天，用于补卡等选过去的场景；不传=无上限）
  * @param {() => void} onClose - 关闭（取消）
  * @param {(date: string) => void} onConfirm - 点确定时回调，传入选中的日期
  */
@@ -32,17 +33,17 @@ function parseDate(s) {
   return { year: Number(m[1]), month: Number(m[2]) - 1, day: Number(m[3]) }
 }
 
-export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm }) {
+export default function DatePickerModal({ isOpen, value, min, max, onClose, onConfirm }) {
   const [draft, setDraft] = useState(value)
   const [view, setView] = useState({ year: 2020, month: 0 })
 
   // 每次打开时，以当前日期为选中值，并把日历翻到该日期所在月份
   useEffect(() => {
     if (!isOpen) return
-    const anchor = parseDate(value) || parseDate(max) || { year: 1970, month: 0 }
-    setDraft(value || max)
+    const anchor = parseDate(value) || parseDate(max) || parseDate(min) || { year: 1970, month: 0 }
+    setDraft(value || max || min)
     setView({ year: anchor.year, month: anchor.month })
-  }, [isOpen, value, max])
+  }, [isOpen, value, min, max])
 
   // 阻止滚动穿透
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
   }, [isOpen])
 
   const maxInfo = useMemo(() => parseDate(max) || { year: 9999, month: 11 }, [max])
+  const minInfo = useMemo(() => parseDate(min) || { year: 0, month: 0 }, [min])
 
   // 当前显示月份的日期格子
   const cells = useMemo(() => {
@@ -67,10 +69,15 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
 
   if (!isOpen) return null
 
-  const isValid = /^\d{4}-\d{2}-\d{2}$/.test(draft) && draft <= max
+  const isValid =
+    /^\d{4}-\d{2}-\d{2}$/.test(draft) &&
+    (!min || draft >= min) &&
+    (!max || draft <= max)
 
   const canGoNext =
     view.year < maxInfo.year || (view.year === maxInfo.year && view.month < maxInfo.month)
+  const canGoPrev =
+    view.year > minInfo.year || (view.year === minInfo.year && view.month > minInfo.month)
 
   const shiftMonth = (delta) => {
     let y = view.year
@@ -85,9 +92,12 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
     setView({ year: y, month: m })
   }
 
-  const jumpToMax = () => {
-    setDraft(max)
-    setView({ year: maxInfo.year, month: maxInfo.month })
+  // 快捷键：有 max 跳 max（补卡场景=今天），无 max 有 min 跳 min（待办场景=最早可选日）
+  const jumpToQuick = () => {
+    const target = max || min
+    setDraft(target)
+    const t = parseDate(target) || { year: 1970, month: 0 }
+    setView({ year: t.year, month: t.month })
   }
 
   return (
@@ -101,28 +111,36 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
         className="relative z-10 w-full max-w-mobile rounded-t-2xl bg-white p-5 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 顶部：标题 + 今天 */}
+        {/* 顶部：标题 + 快捷键 */}
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-bold text-ink-900">选择日期</h2>
-          <button
-            type="button"
-            onClick={jumpToMax}
-            className="rounded-lg bg-gold-100 px-3 py-1 text-xs font-medium text-gold-700 transition-colors hover:bg-gold-500/20"
-          >
-            今天
-          </button>
+          {(max || min) && (
+            <button
+              type="button"
+              onClick={jumpToQuick}
+              className="rounded-lg bg-gold-100 px-3 py-1 text-xs font-medium text-gold-700 transition-colors hover:bg-gold-500/20"
+            >
+              今天
+            </button>
+          )}
         </div>
 
         {/* 月份切换 */}
         <div className="mb-2 flex items-center justify-between">
-          <button
-            type="button"
-            aria-label="上个月"
-            onClick={() => shiftMonth(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-600 transition-colors active:bg-primary-100"
-          >
-            <ChevronLeft size={20} />
-          </button>
+          {canGoPrev ? (
+            <button
+              type="button"
+              aria-label="上个月"
+              onClick={() => shiftMonth(-1)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-600 transition-colors active:bg-primary-100"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          ) : (
+            <span className="flex h-10 w-10 items-center justify-center text-ink-400 opacity-40">
+              <ChevronLeft size={20} />
+            </span>
+          )}
           <div className="text-sm font-semibold text-ink-900">
             {view.year} 年 {view.month + 1} 月
           </div>
@@ -156,7 +174,7 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
           {cells.map((dateStr, idx) => {
             if (!dateStr) return <div key={`empty-${idx}`} className="h-11" />
 
-            const disabled = dateStr > max
+            const disabled = (min && dateStr < min) || (max && dateStr > max)
             const selected = dateStr === draft
             const isMaxDay = dateStr === max
             const dayNum = Number(dateStr.slice(8, 10))
@@ -188,7 +206,8 @@ export default function DatePickerModal({ isOpen, value, max, onClose, onConfirm
         </div>
 
         <p className="mt-2 text-center text-xs text-ink-400">
-          已选：{draft || '—'}（只能选今天及以前）
+          已选：{draft || '—'}
+          {max ? '（只能选今天及以前）' : min ? `（可选 ${min} 及以后）` : ''}
         </p>
 
         {/* 确定 / 取消：就在这个日历界面里 */}
