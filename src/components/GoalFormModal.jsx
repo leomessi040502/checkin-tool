@@ -154,6 +154,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
       categories.some((c) => c.id === id),
     )
 
+    let goalId = null
     try {
       const count = targetCount ? parseInt(targetCount, 10) : null
       const payload = {
@@ -164,7 +165,6 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
         end_date: endDate || null,
       }
 
-      let goalId
       if (isEdit) {
         // 编辑时不修改 status（status 由系统自动计算）
         const { error: updateError } = await withTimeoutToast(supabase
@@ -192,26 +192,54 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
         goalId = insertData.id
       }
 
-      // 同步 goal_categories 关联：先删除旧的，再插入新的
-      const { error: delRelError } = await withTimeoutToast(supabase
-        .from('goal_categories')
-        .delete()
-        .eq('goal_id', goalId))
-      if (delRelError) throw delRelError
+      // 同步关联：优先走事务 RPC（删旧+插新在同一事务，失败不会把关联清空）
+      const { error: rpcError } = await withTimeoutToast(
+        supabase.rpc('replace_goal_categories', {
+          p_goal_id: goalId,
+          p_category_ids: validCategoryIds,
+        }),
+      )
+      const rpcMissing = rpcError?.code === 'PGRST202' || rpcError?.code === '42883'
 
-      if (validCategoryIds.length > 0) {
-        const relRows = validCategoryIds.map((catId) => ({
-          goal_id: goalId,
-          category_id: catId,
-        }))
-        const { error: relInsertError } = await withTimeoutToast(supabase
+      if (!rpcError) {
+        onSuccess()
+      } else if (rpcMissing) {
+        // 迁移 011 未执行：降级为差集增删，尽量缩小失败窗口
+        const { data: existing } = await withTimeoutToast(supabase
           .from('goal_categories')
-          .insert(relRows))
-        if (relInsertError) throw relInsertError
-      }
+          .select('category_id')
+          .eq('goal_id', goalId))
+        const oldIds = (existing || []).map((r) => r.category_id)
+        const toDelete = oldIds.filter((id) => !validCategoryIds.includes(id))
+        const toAdd = validCategoryIds.filter((id) => !oldIds.includes(id))
 
-      onSuccess()
+        if (toDelete.length > 0) {
+          const { error: delErr } = await withTimeoutToast(supabase
+            .from('goal_categories')
+            .delete()
+            .eq('goal_id', goalId)
+            .in('category_id', toDelete))
+          if (delErr) throw delErr
+        }
+        if (toAdd.length > 0) {
+          const { error: addErr } = await withTimeoutToast(supabase
+            .from('goal_categories')
+            .insert(toAdd.map((catId) => ({ goal_id: goalId, category_id: catId }))))
+          if (addErr) throw addErr
+        }
+        onSuccess()
+      } else {
+        throw rpcError
+      }
     } catch {
+      // 新建目标时若关联写入失败，删掉刚创建的目标，避免留下无分类的孤儿目标
+      if (!isEdit && goalId) {
+        try {
+          await withTimeoutToast(supabase.from('goals').delete().eq('id', goalId))
+        } catch {
+          // 回滚失败仅记录，不覆盖原始错误提示
+        }
+      }
       setError('操作失败，请重试')
       // 防抖：确保按钮至少禁用 2 秒
       const elapsed = Date.now() - startTime

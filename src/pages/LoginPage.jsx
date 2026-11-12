@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import { withTimeoutToast } from '../utils/apiWrapper'
 
 const USERNAME_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{2,20}$/
 const PASSWORD_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{6,20}$/
@@ -32,8 +33,7 @@ function LoginPage() {
   useEffect(() => {
     if (mode !== 'register') return
     let active = true
-    supabase
-      .rpc('get_profile_count')
+    withTimeoutToast(supabase.rpc('get_profile_count'))
       .then(({ data, error }) => {
         if (!active) return
         // 查询失败（含未执行迁移）时不显示"人数已满"，避免误导
@@ -86,6 +86,8 @@ function LoginPage() {
       } else if (err.message === 'USER_LIMIT_REACHED') {
         setError('圈子人数已满，联系成员获取账号')
         setUserLimitReached(true)
+      } else if (err.message === 'PROFILE_CREATE_FAILED') {
+        setError('注册未完成，请重试；若一直失败请联系成员清理账号')
       } else if (mode === 'login') {
         setError('用户名或密码错误')
       } else {

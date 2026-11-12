@@ -113,13 +113,12 @@ export default function MakeupCheckinModal({ isOpen, onClose, categories, onSucc
 
     try {
       const trimmedNote = note.trim() || null
-      const selectedCat = localCategories.find((c) => c.id === selectedCategoryId)
+      // category 是历史遗留列，前端已统一只用 category_id，不再写入
       const { error: insertError } = await withTimeoutToast(supabase
         .from('checkins')
         .insert({
           user_id: user.id,
           category_id: selectedCategoryId,
-          category: selectedCat?.name,
           checkin_date: selectedDate,
           note: trimmedNote,
         }))

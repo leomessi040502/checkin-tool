@@ -94,16 +94,9 @@ export function AuthProvider({ children }) {
   }
 
   const signUp = async (username, password) => {
-    // 1. 检查用户名是否已存在
-    const { data: existing } = await withTimeoutToast(supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle())
-
-    if (existing) {
-      throw new Error('USERNAME_EXISTS')
-    }
+    // 1. 匿名查询 profiles 会被 RLS 拦截（返回 0 行），查重不可靠。
+    //    真实查重由 auth.users.email 唯一性保证（登录邮箱 = <username>@checkin.local），
+    //    下面的错误码映射负责给出准确的「用户名已被使用」提示。
 
     // 2. 检查注册人数是否达到上限（走 RPC，绕过 RLS）
     const count = await fetchProfileCount()
@@ -114,23 +107,42 @@ export function AuthProvider({ children }) {
     // 3. 调用 Supabase Auth 注册
     const email = `${username}@checkin.local`
     const { data, error } = await withTimeoutToast(supabase.auth.signUp({ email, password }))
-    if (error) throw error
-
-    // 4. 在 profiles 表插入记录
-    if (data.user) {
-      const { error: profileError } = await withTimeoutToast(supabase
-        .from('profiles')
-        .insert({ id: data.user.id, username }))
-      if (profileError) {
-        // 数据库触发器兜底拒绝（绕过前端直接注册）
-        if (String(profileError.message || '').includes('USER_LIMIT_REACHED')) {
-          throw new Error('USER_LIMIT_REACHED')
-        }
-        throw profileError
+    if (error) {
+      const msg = String(error.message || '')
+      if (/already registered|already exists|user_already_exists|duplicate key|23505/i.test(msg) || error.status === 422) {
+        throw new Error('USERNAME_EXISTS')
       }
-
-      setUser({ id: data.user.id, email: data.user.email, username })
+      throw error
     }
+    if (!data?.user) {
+      // 邮箱已被占用但项目开启防枚举时可能不返回用户，按重名处理
+      throw new Error('USERNAME_EXISTS')
+    }
+
+    // 4. 写入 profiles。失败时必须清理刚创建的 auth 用户，否则会留下
+    //    「能登录但没有昵称、且永久占用该假邮箱」的孤儿账号。
+    const { error: profileError } = await withTimeoutToast(supabase
+      .from('profiles')
+      .insert({ id: data.user.id, username }))
+    if (profileError) {
+      try {
+        await withTimeoutToast(supabase.rpc('delete_own_account'))
+        try {
+          await supabase.auth.signOut()
+        } catch {
+          // 账号已删除，session 清理失败可忽略
+        }
+      } catch (cleanupErr) {
+        console.warn('[AuthContext] 注册回滚清理失败:', cleanupErr)
+      }
+      // 数据库触发器兜底拒绝（绕过前端直接注册）
+      if (String(profileError.message || '').includes('USER_LIMIT_REACHED')) {
+        throw new Error('USER_LIMIT_REACHED')
+      }
+      throw new Error('PROFILE_CREATE_FAILED')
+    }
+
+    setUser({ id: data.user.id, email: data.user.email, username })
   }
 
   const signOut = async () => {
