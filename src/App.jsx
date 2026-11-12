@@ -1,9 +1,9 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import CheckinPage from './pages/CheckinPage'
-import CountdownPage from './pages/CountdownPage'
+import TasksPage from './pages/TasksPage'
 import GoalsPage from './pages/GoalsPage'
 import StatsPage from './pages/StatsPage'
 import ProfilePage from './pages/ProfilePage'
@@ -24,7 +24,9 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<ProtectedRoute><CheckinPage /></ProtectedRoute>} />
-            <Route path="/countdown" element={<ProtectedRoute><CountdownPage /></ProtectedRoute>} />
+            <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+            {/* 旧倒计时路由重定向（兼容历史收藏/缓存页面） */}
+            <Route path="/countdown" element={<Navigate to="/tasks?tab=countdown" replace />} />
             <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
             <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

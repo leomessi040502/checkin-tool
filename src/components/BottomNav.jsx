@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { CheckCircle2, Clock3, Target, BarChart3, User } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Target, BarChart3, User } from 'lucide-react'
 
 const tabs = [
   { to: '/', label: '打卡', icon: CheckCircle2 },
-  { to: '/countdown', label: '倒计时', icon: Clock3 },
+  { to: '/tasks', label: '事项', icon: ClipboardList },
   { to: '/goals', label: '目标', icon: Target },
   { to: '/stats', label: '统计', icon: BarChart3 },
   { to: '/profile', label: '我的', icon: User },
