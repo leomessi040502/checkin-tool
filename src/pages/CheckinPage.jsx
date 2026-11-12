@@ -20,7 +20,8 @@ import {
 
 function CheckinPage() {
   const { user } = useAuth()
-  const todayStr = getTodayStr()  // 仅用于比较和 max 约束
+  // 「今天」用 state 存放：页面长时间开着跨过午夜后自动刷新，避免仍按旧日期判断
+  const [todayStr, setTodayStr] = useState(getTodayStr)
   const [selectedDate, setSelectedDate] = useState(getTodayStr())
   // 日期选择弹窗：手机端原生选择器不可靠，改为弹窗内选完点"确定"才切换
   const [datePickerOpen, setDatePickerOpen] = useState(false)
@@ -162,6 +163,17 @@ function CheckinPage() {
       setAllTodayCheckins([])
     }
   }, [selectedDate, user])
+
+  // 跨午夜同步「今天」：每分钟检查 + 切回页面时立即检查
+  useEffect(() => {
+    const syncToday = () => setTodayStr(getTodayStr())
+    const timer = setInterval(syncToday, 60 * 1000)
+    document.addEventListener('visibilitychange', syncToday)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', syncToday)
+    }
+  }, [])
 
   useEffect(() => {
     const load = async () => {

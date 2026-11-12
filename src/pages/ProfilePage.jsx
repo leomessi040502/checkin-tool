@@ -39,29 +39,24 @@ function ProfilePage() {
   const fetchStats = useCallback(async () => {
     if (!user) return
     try {
-      // 查询所有分类
-      const { data: cats } = await withTimeoutToast(supabase.from('categories').select('id, name, icon').eq('user_id', user.id))
-      setCategories(cats || [])
+      // 一次并行查出分类、总次数、全部打卡的分类归属，避免每个分类单独发一次 count 请求
+      const [catsRes, totalRes, rowsRes] = await Promise.all([
+        withTimeoutToast(supabase.from('categories').select('id, name, icon').eq('user_id', user.id)),
+        withTimeoutToast(supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id)),
+        withTimeoutToast(supabase.from('checkins').select('category_id').eq('user_id', user.id)),
+      ])
 
-      // 查询总数
-      const { count: total } = await withTimeoutToast(
-        supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
-      )
+      const cats = catsRes.data || []
+      setCategories(cats)
 
-      // 查询各分类次数
+      // 各分类次数：在前端按 category_id 归集（1 次查询替代 N 次 count）
       const byCategory = {}
-      if (cats && cats.length > 0) {
-        const countPromises = cats.map(cat =>
-          withTimeoutToast(
-            supabase.from('checkins').select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id).eq('category_id', cat.id)
-          ).then(res => ({ id: cat.id, count: res.count || 0 }))
-        )
-        const results = await Promise.all(countPromises)
-        results.forEach(r => { byCategory[r.id] = r.count })
-      }
+      const rows = rowsRes.data || []
+      rows.forEach((r) => {
+        if (r.category_id) byCategory[r.category_id] = (byCategory[r.category_id] || 0) + 1
+      })
 
-      setStats({ total: total || 0, byCategory })
+      setStats({ total: totalRes.count || 0, byCategory })
     } catch {
       // 查询失败时保持默认值，不崩溃
     }

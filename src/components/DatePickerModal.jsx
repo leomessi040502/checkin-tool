@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { getTodayStr } from '../utils/date'
 
 /**
  * 自定义日历选择弹窗（不依赖手机原生日期控件）
@@ -120,7 +121,8 @@ export default function DatePickerModal({ isOpen, value, min, max, onClose, onCo
               onClick={jumpToQuick}
               className="rounded-lg bg-gold-100 px-3 py-1 text-xs font-medium text-gold-700 transition-colors hover:bg-gold-500/20"
             >
-              今天
+              {/* 有 max（补卡）或 min 恰为今天（待办）时是「今天」；min 为自定义起始日时改叫「起始日」 */}
+              {max || min === getTodayStr() ? '今天' : '起始日'}
             </button>
           )}
         </div>

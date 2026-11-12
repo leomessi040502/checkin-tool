@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
-import { getTodayStr } from '../utils/date'
+import { getTodayStr, formatChineseDate } from '../utils/date'
+import DatePickerModal from './DatePickerModal'
 
 function CountdownFormModal({
   open,
@@ -15,6 +17,7 @@ function CountdownFormModal({
   const [targetDate, setTargetDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
 
   const today = getTodayStr()
 
@@ -23,6 +26,7 @@ function CountdownFormModal({
       setTitle(initialData?.title || '')
       setTargetDate(initialData?.target_date || '')
       setError('')
+      setDatePickerOpen(false)
     }
   }, [open, initialData])
 
@@ -110,18 +114,19 @@ function CountdownFormModal({
             </p>
           </div>
 
-          {/* 目标日期 */}
+          {/* 目标日期：自绘日历（手机端弃用原生 date 控件） */}
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-600">
               目标日期
             </label>
-            <input
-              type="date"
-              value={targetDate}
-              min={today}
-              onChange={(e) => setTargetDate(e.target.value)}
-              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
-            />
+            <button
+              type="button"
+              onClick={() => setDatePickerOpen(true)}
+              className="flex w-full items-center gap-2 rounded-lg border border-primary-200 px-3 py-2.5 text-sm text-ink-600 transition-colors hover:border-primary-500"
+            >
+              <CalendarDays size={16} className="text-primary-500" />
+              {targetDate ? formatChineseDate(targetDate) : '选择日期'}
+            </button>
           </div>
 
           {/* 错误提示 */}
@@ -151,6 +156,18 @@ function CountdownFormModal({
           </div>
         </form>
       </div>
+
+      {/* 目标日期只能选今天及以后 */}
+      <DatePickerModal
+        isOpen={datePickerOpen}
+        value={targetDate}
+        min={today}
+        onClose={() => setDatePickerOpen(false)}
+        onConfirm={(date) => {
+          setTargetDate(date)
+          setDatePickerOpen(false)
+        }}
+      />
     </div>
   )
 }

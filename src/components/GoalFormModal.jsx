@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { CalendarDays, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
-import { getTodayStr } from '../utils/date'
+import { getTodayStr, formatChineseDate } from '../utils/date'
+import DatePickerModal from './DatePickerModal'
 
 const TYPES = [
   { key: 'periodic', label: '周期目标' },
@@ -28,6 +30,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
   const [categories, setCategories] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [datePickerTarget, setDatePickerTarget] = useState(null) // 'start' | 'end' | null
 
   const today = getTodayStr()
 
@@ -60,6 +63,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
       }
       setError('')
       setSubmitting(false)
+      setDatePickerTarget(null)
     }
   }, [isOpen, initialData, today])
 
@@ -336,31 +340,46 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
             />
           </div>
 
-          {/* 起始日期 */}
+          {/* 起始日期：自绘日历，可选任意日期 */}
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-600">
               起始日期
             </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
-            />
+            <button
+              type="button"
+              onClick={() => setDatePickerTarget('start')}
+              className="flex w-full items-center gap-2 rounded-lg border border-primary-200 px-3 py-2.5 text-sm text-ink-600 transition-colors hover:border-primary-500"
+            >
+              <CalendarDays size={16} className="text-primary-500" />
+              {startDate ? formatChineseDate(startDate) : '选择日期'}
+            </button>
           </div>
 
-          {/* 截止日期 */}
+          {/* 截止日期：不能早于起始日期 */}
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-600">
               截止日期 <span className="text-xs font-normal text-ink-400">（选填）</span>
             </label>
-            <input
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-primary-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary-500"
-            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDatePickerTarget('end')}
+                className="flex flex-1 items-center gap-2 rounded-lg border border-primary-200 px-3 py-2.5 text-sm text-ink-600 transition-colors hover:border-primary-500"
+              >
+                <CalendarDays size={16} className="text-primary-500" />
+                {endDate ? formatChineseDate(endDate) : '选择日期'}
+              </button>
+              {endDate && (
+                <button
+                  type="button"
+                  onClick={() => setEndDate('')}
+                  aria-label="清除截止日期"
+                  className="flex items-center justify-center rounded-lg border border-primary-200 px-3 py-2.5 text-ink-400 transition-colors hover:text-red-500"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
             <p className="mt-1 text-xs text-ink-400">
               {type === 'periodic'
                 ? '周期目标：目标次数和截止日期至少填写一个'
@@ -394,6 +413,27 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
             </button>
           </div>
         </form>
+
+        {/* 起始日不限；截止日不能早于起始日 */}
+        <DatePickerModal
+          isOpen={datePickerTarget === 'start'}
+          value={startDate}
+          onClose={() => setDatePickerTarget(null)}
+          onConfirm={(date) => {
+            setStartDate(date)
+            setDatePickerTarget(null)
+          }}
+        />
+        <DatePickerModal
+          isOpen={datePickerTarget === 'end'}
+          value={endDate}
+          min={startDate}
+          onClose={() => setDatePickerTarget(null)}
+          onConfirm={(date) => {
+            setEndDate(date)
+            setDatePickerTarget(null)
+          }}
+        />
       </div>
     </div>
   )

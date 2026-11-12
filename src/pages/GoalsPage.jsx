@@ -87,11 +87,14 @@ function GoalsPage() {
 
       let checkins = []
       if (earliestStart && goalsData.length > 0) {
+        // 只取目标创建者的打卡，过滤下推到 SQL，避免捞出无关用户的数据
+        const goalUserIds = [...new Set(goalsData.map((g) => g.user_id))]
         const checkinsRes = await withTimeoutToast(
           supabase
             .from('checkins')
             .select('user_id, category_id, checkin_date')
-            .gte('checkin_date', earliestStart),
+            .gte('checkin_date', earliestStart)
+            .in('user_id', goalUserIds),
         )
         checkins = checkinsRes.data || []
       }
