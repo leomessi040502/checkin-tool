@@ -1,11 +1,11 @@
 import { Check, Eye, EyeOff, Clock3 } from 'lucide-react'
-import { isOverdue, } from '../utils/todoSort'
+import { isOverdue } from '../utils/todoSort'
 import { getDaysRemaining, formatChineseDate } from '../utils/date'
 
 const PRIORITY_DOT = {
   3: 'bg-red-500',
   2: 'bg-gold-500',
-  1: 'bg-ink-300',
+  1: 'bg-ink-400',
 }
 
 /**
@@ -22,8 +22,7 @@ function TodoCard({ item, currentUserId, onToggle, onOpen }) {
 
   return (
     <div
-      className={`card flex items-start gap-3 p-4 transition-colors ${isDone ? 'opacity-70' : ''}`}
-      style={overdue ? { boxShadow: 'inset 3px 0 0 0 #ef4444' } : undefined}
+      className={`card flex items-start gap-3 p-4 transition-colors ${isDone ? 'opacity-70' : ''} ${overdue ? 'border-l-[3px] border-l-red-500' : ''}`}
     >
       {/* 勾选圈（仅自己的） */}
       {isMine ? (
@@ -74,7 +73,7 @@ function TodoCard({ item, currentUserId, onToggle, onOpen }) {
                 overdue
                   ? 'font-medium text-red-500'
                   : isToday
-                    ? 'font-medium text-gold-600'
+                    ? 'font-medium text-gold-700'
                     : isDone
                       ? 'text-ink-400'
                       : 'text-ink-600'
@@ -93,7 +92,7 @@ function TodoCard({ item, currentUserId, onToggle, onOpen }) {
               已完成 · {new Date(item.completed_at).toLocaleDateString('zh-CN')}
             </span>
           )}
-          <span className="ml-auto shrink-0 text-ink-300">
+          <span className="ml-auto shrink-0 text-ink-400">
             {item.is_public ? <Eye size={13} /> : <EyeOff size={13} />}
           </span>
         </div>

@@ -1,7 +1,7 @@
 -- ============================================================
 -- 007: 用户自注销账号功能
 -- 通过 SECURITY DEFINER 函数删除 auth.users 记录
--- 所有相关表（profiles/checkins/categories/goals/countdowns）均通过
+-- 所有相关表（profiles/checkins/categories/goals/countdowns/todos/goal_categories）均通过
 -- ON DELETE CASCADE 引用 auth.users，删除后自动级联清理
 -- ============================================================
 

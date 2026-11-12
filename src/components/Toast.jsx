@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { CheckCircle2, XCircle } from 'lucide-react'
 
 // 全局 toast 控制器，允许非 React 代码（如 apiWrapper）触发提示
@@ -27,12 +27,20 @@ const TYPE_STYLES = {
  */
 export default function Toast() {
   const [toast, setToast] = useState(null)
+  const timerRef = useRef(null)
 
+  // 每次新提示先清掉旧定时器，避免连续提示被上一个 timer 提前清掉
   const handleSet = useCallback((t) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
     setToast(t)
     if (t) {
-      const timer = setTimeout(() => setToast(null), 3000)
-      return () => clearTimeout(timer)
+      timerRef.current = setTimeout(() => {
+        setToast(null)
+        timerRef.current = null
+      }, 3000)
     }
   }, [])
 
@@ -40,6 +48,7 @@ export default function Toast() {
     _setToastFn = handleSet
     return () => {
       _setToastFn = null
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [handleSet])
 

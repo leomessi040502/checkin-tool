@@ -450,7 +450,7 @@ function ProfilePage() {
               注销后所有数据将永久删除，不可恢复
             </p>
             <p className="mb-2 text-center text-xs text-ink-400">
-              打卡记录、分类、目标、倒计时都将被清除
+              打卡记录、分类、目标、倒计时、待办都将被清除
             </p>
             <div className="mb-2">
               <label className="mb-1 block text-xs text-ink-600">
