@@ -56,6 +56,8 @@ async function proxyToSupabase(request, env, url) {
   for (const name of ['content-encoding', 'content-length', 'transfer-encoding', 'connection']) {
     resHeaders.delete(name)
   }
+  // Auth 响应含 access_token，REST 响应含用户数据，一律禁止任何中间层缓存
+  resHeaders.set('cache-control', 'no-store')
   resHeaders.set('x-checkin-proxy', 'supabase')
   return new Response(upstream.body, { status: upstream.status, headers: resHeaders })
 }
