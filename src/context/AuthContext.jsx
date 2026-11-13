@@ -1,6 +1,14 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
+import {
+  AUTH_UNKNOWN,
+  mergeAuthUser,
+  isStale,
+  shouldFinishLoading,
+  isMissingSessionError,
+  isNoRowsError,
+} from '../utils/authState'
 
 const AuthContext = createContext(null)
 
@@ -28,16 +36,49 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // 每开始一次 auth 解析就递增，只有最新一代的结果允许写登录态，
+  // 避免慢回调回来覆盖更新的状态（onAuthStateChange 竞态）。
+  const authGenRef = useRef(0)
+
+  /** 主动写入登录态（登录/注册/退出/改名等）：同时作废旧回调 */
+  const commitUser = useCallback((next) => {
+    authGenRef.current += 1
+    setUser(next)
+  }, [])
+
+  /**
+   * 解析当前登录用户，返回三态，必须区分：
+   *   object    已登录
+   *   null      明确未登录（没有 session / SIGNED_OUT）
+   *   undefined 状态未知（网络失败、RLS 拒绝、超时、profile 查询报错）
+   *
+   * 旧版把「未知」也压成 null，导致一次查询抖动就把刚登录的用户踢回登录页。
+   * 另外：事件回调里会传入 session.user，因此这里不再调用 supabase.auth.getUser()，
+   * 避免在 auth 事件回调内部再次调用 auth 方法造成死锁。
+   */
   const getCurrentUser = useCallback(async (authUser = null) => {
     try {
-      const currentUser = authUser || (await withTimeoutToast(supabase.auth.getUser())).data.user
+      let currentUser = authUser
+      if (!currentUser) {
+        const { data, error } = await withTimeoutToast(supabase.auth.getUser())
+        if (error) {
+          // 本地没有 session 是「明确未登录」，不是网络问题，立即放行到登录页
+          return isMissingSessionError(error) ? null : AUTH_UNKNOWN
+        }
+        currentUser = data?.user ?? null
+      }
       if (!currentUser) return null
 
-      const { data: profile } = await withTimeoutToast(supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', currentUser.id)
-        .single())
+      const { data: profile, error: profileError } = await withTimeoutToast(
+        supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', currentUser.id)
+          .single(),
+      )
+      // .single() 查到 0 行是「确实没有 profile」，仍算已登录；
+      // 其余（断网 / RLS 拒绝 / 超时）才是状态未知
+      if (profileError && !isNoRowsError(profileError)) return AUTH_UNKNOWN
 
       return {
         id: currentUser.id,
@@ -45,32 +86,57 @@ export function AuthProvider({ children }) {
         username: profile?.username || null,
       }
     } catch {
-      return null
+      return AUTH_UNKNOWN
     }
   }, [])
 
   useEffect(() => {
     let active = true
+    let fallback = null
 
+    /** 只有最新一代的结果才落地；未知结果由 mergeAuthUser 保留现状 */
+    const settle = (token, result) => {
+      if (!active || isStale(token, authGenRef.current)) return
+      setUser((current) => mergeAuthUser(current, result))
+      // 状态未知：保留登录态与 loading，交给后续 auth 事件或 12 秒兜底，
+      // 绝不能因为一次网络抖动就解除 loading、把用户踢回登录页
+      if (!shouldFinishLoading(result)) return
+      if (fallback) {
+        clearTimeout(fallback)
+        fallback = null
+      }
+      setLoading(false)
+    }
+
+    const initialToken = ++authGenRef.current
     getCurrentUser()
-      .then((u) => {
-        if (active) setUser(u)
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
+      .then((u) => settle(initialToken, u))
+      .catch(() => settle(initialToken, AUTH_UNKNOWN))
+
+    // 兜底：万一 auth 事件回调始终没来、或一直网络失败，也不能永远卡在「加载中…」
+    fallback = setTimeout(() => {
+      if (active) setLoading(false)
+    }, 12000)
 
     let subscription
     try {
-      const result = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const result = supabase.auth.onAuthStateChange((_event, session) => {
         if (!active) return
-        if (session?.user) {
-          const u = await getCurrentUser(session.user)
-          if (active) setUser(u)
-        } else {
-          setUser(null)
+        const token = ++authGenRef.current
+        if (!session?.user) {
+          // 明确登出无需发请求，同步落地即可
+          settle(token, null)
+          return
         }
-        setLoading(false)
+        // GoTrue 的 INITIAL_SESSION 等事件可能在其内部锁内派发，
+        // 回调里直接 await supabase 方法（from() 内部会取 session）有死锁风险。
+        // 用宏任务让出当前调用栈再发请求，这是 Supabase 官方推荐做法。
+        setTimeout(() => {
+          if (!active || isStale(token, authGenRef.current)) return
+          getCurrentUser(session.user)
+            .then((u) => settle(token, u))
+            .catch(() => settle(token, AUTH_UNKNOWN))
+        }, 0)
       })
       subscription = result.data.subscription
     } catch {
@@ -79,6 +145,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       active = false
+      if (fallback) clearTimeout(fallback)
       subscription?.unsubscribe()
     }
   }, [getCurrentUser])
@@ -104,7 +171,7 @@ export function AuthProvider({ children }) {
     )
     if (profileError) throw profileError
 
-    setUser({
+    commitUser({
       id: data.user.id,
       email: data.user.email,
       username: profile?.username || null,
@@ -160,12 +227,12 @@ export function AuthProvider({ children }) {
       throw new Error('PROFILE_CREATE_FAILED')
     }
 
-    setUser({ id: data.user.id, email: data.user.email, username })
+    commitUser({ id: data.user.id, email: data.user.email, username })
   }
 
   const signOut = async () => {
     await withTimeoutToast(supabase.auth.signOut())
-    setUser(null)
+    commitUser(null)
   }
 
   /**
@@ -190,7 +257,7 @@ export function AuthProvider({ children }) {
     )
 
     if (!rpcError) {
-      setUser({ ...user, username: newUsername })
+      commitUser({ ...user, username: newUsername })
       return
     }
 
@@ -226,7 +293,7 @@ export function AuthProvider({ children }) {
     if (error) throw error
 
     // 更新本地 user 状态
-    setUser({ ...user, username: newUsername })
+    commitUser({ ...user, username: newUsername })
   }
 
   /** 修改密码 */
@@ -272,11 +339,13 @@ export function AuthProvider({ children }) {
     } catch {
       // 账号已删除，signOut 失败可忽略
     }
-    setUser(null)
+    commitUser(null)
   }
 
+  // getCurrentUser 返回三态（含 undefined=状态未知），仅供应内部竞态逻辑使用，
+  // 不再暴露给页面，避免被调用方当成「真假值」误判为未登录。
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, getCurrentUser, updateUsername, updatePassword, deleteAccount }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, updateUsername, updatePassword, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )
