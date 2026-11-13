@@ -23,7 +23,22 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # 生产构建必须注入 anon key；缺少时直接失败，避免部署出白屏版本。
+      # 变量放 Variables 或 Secrets 都支持，Secrets 优先兜底见下方表达式。
+      - name: Verify build env
+        env:
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::error::缺少 VITE_SUPABASE_ANON_KEY。请在仓库 Settings → Secrets and variables → Actions 中添加（Variables 或 Secrets 均可）后重新运行。"
+            exit 1
+          fi
+          echo "VITE_SUPABASE_ANON_KEY 已配置（长度 ${#VITE_SUPABASE_ANON_KEY}）"
+
       - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Deploy to Cloudflare Workers
