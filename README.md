@@ -27,7 +27,7 @@ UI 为商务成熟风：藏青 `primary-800 #1B2A4A` + 金色点缀 `gold-500 #C
 
 ```bash
 npm ci
-cp .env.example .env.local   # 必填 VITE_SUPABASE_ANON_KEY；VITE_SUPABASE_URL 可选
+cp .env.example .env.local   # VITE_SUPABASE_URL 与 VITE_SUPABASE_ANON_KEY 都要填
 npm run dev                  # 仅本地预览，不是交付成果
 npm run build
 npm run lint
@@ -35,7 +35,9 @@ npm run lint
 
 > Windows 注意：`npm.cmd --prefix` 对含空格的中文路径会失败。本项目构建在无空格路径的副本中进行（见工作区交接文档）。
 
-本地 `npm run build` 同样需要 `VITE_SUPABASE_ANON_KEY`（或先 `source .env.local`）；缺少时构建产物在浏览器里会直接抛出"缺少 VITE_SUPABASE_ANON_KEY"。
+本地 `npm run build` 同样需要 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY`（Vite 会自动读取 `.env.local`）；缺失时构建产物在浏览器里会直接抛出对应的"缺少 VITE_SUPABASE_xxx"。
+
+源码中**不含任何** Supabase 地址或 key 的硬编码，两个值一律由构建时注入。
 
 ## Supabase 访问链路（重要）
 
@@ -50,7 +52,7 @@ npm run lint
 - 前端生产 URL 由 `src/lib/supabase.js` 按 `window.location.origin` 自动生成，只转发 `/auth/v1/*` 与 `/rest/v1/*`，其余路径 404。
 - `wrangler.toml` 的 `[vars] SUPABASE_URL` 是 Worker 反代的**上游地址**，写在这里没问题（非机密）。
 - 数据库、RLS、SQL、页面代码都不感知反代；JWT 与 `apikey` 由 Worker 原样透传。
-- **回滚方式**：把 `src/lib/supabase.js` 的 `useProxy` 临时改为 `false`（即恢复直连 `DIRECT_URL`）后重新部署即可。
+- **回滚方式**：确认仓库 Actions Variables 里有 `VITE_SUPABASE_URL`（生产构建会注入它），再把 `src/lib/supabase.js` 的 `useProxy` 临时改为 `false`，重新部署即恢复直连。
 - 切换 URL 会改变 supabase-js 的会话 storage key，所有设备需重新登录一次（数据不丢）。
 
 ## 环境变量与部署
