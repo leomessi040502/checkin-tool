@@ -39,7 +39,23 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm run build
+        run: |
+          # 只靠进程环境变量注入不可靠（不同 Vite 版本对 process.env 的合并行为不一致），
+          # 显式写 .env.production 让 Vite 一定读得到。
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' \
+            "$VITE_SUPABASE_URL" "$VITE_SUPABASE_ANON_KEY" > .env.production
+          npm run build
+          rm -f .env.production
+          # 产物自检：注入值必须真的进了 bundle，且不能是缺配置空壳。
+          # 任何一项不满足都直接失败，绝不部署白屏版本。
+          if ! grep -qF -- "$VITE_SUPABASE_ANON_KEY" dist/assets/*.js; then
+            echo "::error::构建产物未包含 VITE_SUPABASE_ANON_KEY，请检查 Actions 变量配置"
+            exit 1
+          fi
+          if grep -qF "缺少 VITE_SUPABASE_ANON_KEY" dist/assets/*.js; then
+            echo "::error::构建产物是缺配置空壳，已阻止部署"
+            exit 1
+          fi
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
