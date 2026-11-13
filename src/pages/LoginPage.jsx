@@ -4,6 +4,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
+import { describeAuthError } from '../utils/authError'
 
 const USERNAME_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{2,20}$/
 const PASSWORD_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{6,20}$/
@@ -20,6 +21,7 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [errorHint, setErrorHint] = useState('')
   const [userLimitReached, setUserLimitReached] = useState(false)
 
   // 已登录则跳转至首页
@@ -63,6 +65,7 @@ function LoginPage() {
   const handleModeSwitch = (newMode) => {
     setMode(newMode)
     setError('')
+    setErrorHint('')
     setUserLimitReached(false)
   }
 
@@ -72,6 +75,7 @@ function LoginPage() {
 
     setSubmitting(true)
     setError('')
+    setErrorHint('')
 
     try {
       if (mode === 'login') {
@@ -81,18 +85,13 @@ function LoginPage() {
       }
       navigate('/')
     } catch (err) {
-      if (err.message === 'USERNAME_EXISTS') {
-        setError('用户名已被使用，请换一个')
-      } else if (err.message === 'USER_LIMIT_REACHED') {
-        setError('圈子人数已满，联系成员获取账号')
-        setUserLimitReached(true)
-      } else if (err.message === 'PROFILE_CREATE_FAILED') {
-        setError('注册未完成，请重试；若一直失败请联系成员清理账号')
-      } else if (mode === 'login') {
-        setError('用户名或密码错误')
-      } else {
-        setError('注册失败，请重试')
-      }
+      // 只有 Supabase 明确判定凭据无效时才会显示「用户名或密码错误」；
+      // 断网 / 超时 / 服务端故障一律如实提示，避免误导用户反复改密码。
+      const { kind, message, hint } = describeAuthError(err, mode)
+      console.warn('[LoginPage] 认证失败:', kind, err)
+      setError(message)
+      setErrorHint(hint)
+      if (kind === 'user_limit_reached') setUserLimitReached(true)
     } finally {
       setSubmitting(false)
     }
@@ -188,9 +187,16 @@ function LoginPage() {
             </p>
           </div>
 
-          {/* 错误提示 */}
+          {/* 错误提示：主提示 + 可操作的补充说明 */}
           {error && (
-            <p className="text-center text-sm text-red-500">{error}</p>
+            <div className="rounded-lg bg-red-50 px-3 py-2.5 text-center">
+              <p className="text-sm font-medium text-red-600">{error}</p>
+              {errorHint && (
+                <p className="mt-1 text-xs leading-relaxed text-red-500">
+                  {errorHint}
+                </p>
+              )}
+            </div>
           )}
 
           {/* 提交按钮 */}

@@ -85,12 +85,30 @@ export function AuthProvider({ children }) {
 
   const signIn = async (username, password) => {
     const email = `${username}@checkin.local`
-    const { data, error } = await withTimeoutToast(supabase.auth.signInWithPassword({ email, password }))
+    const { data, error } = await withTimeoutToast(
+      supabase.auth.signInWithPassword({ email, password }),
+    )
     if (error) throw error
-    if (data.user) {
-      const u = await getCurrentUser(data.user)
-      setUser(u)
-    }
+    if (!data?.user) throw new Error('SIGNIN_NO_USER')
+
+    // 登录成功后必须能取到 profile。这一步以前走 getCurrentUser()，
+    // 而它 catch 掉所有异常并返回 null，导致「账号密码都对、Auth 也登录成功，
+    // 但 REST 查询断网」时 setUser(null)、页面静默弹回登录页且没有任何提示。
+    // 这里显式检查 error 并让错误冒泡到 LoginPage，由 describeAuthError 给出准确提示。
+    const { data: profile, error: profileError } = await withTimeoutToast(
+      supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', data.user.id)
+        .single(),
+    )
+    if (profileError) throw profileError
+
+    setUser({
+      id: data.user.id,
+      email: data.user.email,
+      username: profile?.username || null,
+    })
   }
 
   const signUp = async (username, password) => {
