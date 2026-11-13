@@ -28,11 +28,22 @@ jobs:
       - name: Verify build env
         env:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
         run: |
+          # 只打印长度与前缀，不打印完整值；warning 会出现在运行摘要的注解里，便于排障
+          echo "::warning::诊断 anonKey长度=${#VITE_SUPABASE_ANON_KEY} 前缀=${VITE_SUPABASE_ANON_KEY:0:14} url长度=${#VITE_SUPABASE_URL}"
           if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
-            echo "::error::缺少 VITE_SUPABASE_ANON_KEY。请在仓库 Settings → Secrets and variables → Actions 中添加（Variables 或 Secrets 均可）后重新运行。"
+            echo "::error::缺少 VITE_SUPABASE_ANON_KEY（环境变量为空）。请在仓库 Settings → Secrets and variables → Actions 中添加（Variables 或 Secrets 均可）后重新运行。"
             exit 1
           fi
+          # 格式校验：空值或误贴其他内容都在这里拦住
+          case "$VITE_SUPABASE_ANON_KEY" in
+            sb_publishable_*|eyJ*) ;;
+            *)
+              echo "::error::VITE_SUPABASE_ANON_KEY 格式不正确，应以 sb_publishable_ 或 eyJ 开头，实际前缀为 ${VITE_SUPABASE_ANON_KEY:0:14}"
+              exit 1
+              ;;
+          esac
           echo "VITE_SUPABASE_ANON_KEY 已配置（长度 ${#VITE_SUPABASE_ANON_KEY}）"
 
       - name: Build
@@ -40,6 +51,11 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
+          # 空字符串会让 grep -qF "" 匹配任意内容，自检形同虚设，必须先断言非空。
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Build 步骤未拿到 VITE_SUPABASE_ANON_KEY（env 为空），已阻止部署"
+            exit 1
+          fi
           # 只靠进程环境变量注入不可靠（不同 Vite 版本对 process.env 的合并行为不一致），
           # 显式写 .env.production 让 Vite 一定读得到。
           printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' \
@@ -56,6 +72,14 @@ jobs:
             echo "::error::构建产物是缺配置空壳，已阻止部署"
             exit 1
           fi
+          # 固定前缀兜底：即使变量为空、上面的空模式 grep 误判通过，这里也绝不放行空壳。
+          # 同时兼容 publishable key（sb_publishable_）与旧版 JWT anon key（eyJhbGciOi）。
+          if ! grep -qF "sb_publishable_" dist/assets/*.js \
+             && ! grep -qF "eyJhbGciOi" dist/assets/*.js; then
+            echo "::error::构建产物不含可识别的 Supabase key，key 注入失败，已阻止部署"
+            exit 1
+          fi
+          echo "::warning::产物自检通过 $(ls -l dist/assets/*.js | awk '{print $5, $9}')"
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
