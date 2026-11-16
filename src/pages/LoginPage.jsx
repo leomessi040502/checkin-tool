@@ -9,8 +9,9 @@ import { describeAuthError } from '../utils/authError'
 const USERNAME_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{2,20}$/
 const PASSWORD_REGEX = /^[\u4e00-\u9fa5a-zA-Z0-9]{6,20}$/
 
-/** 圈子人数上限（与 AuthContext / 数据库 enforce_profile_limit() 保持一致） */
-const MAX_USERS = 2
+/** 圈子人数上限（与 AuthContext / 数据库 enforce_profile_limit() 保持一致）
+ *  2026-11-16 起用户要求不限制：置为极大占位值，机制保留、随时可改小恢复限制 */
+const MAX_USERS = 999999
 
 function LoginPage() {
   const navigate = useNavigate()

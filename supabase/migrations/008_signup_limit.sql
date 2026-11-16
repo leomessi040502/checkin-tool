@@ -31,7 +31,7 @@ GRANT EXECUTE ON FUNCTION public.get_profile_count() TO anon, authenticated;
 
 -- ------------------------------------------------------------
 -- 2. 数据库层硬兜底：插入 profile 前校验人数上限
---    上限在此调整（当前：2 人）
+--    2026-11-16 起用户要求不限制：置为极大占位值，机制保留、随时可改小恢复限制
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.enforce_profile_limit()
 RETURNS TRIGGER
@@ -40,7 +40,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  max_users CONSTANT integer := 2;
+  max_users CONSTANT integer := 999999;
   current_count integer;
 BEGIN
   SELECT COUNT(*) INTO current_count FROM public.profiles;

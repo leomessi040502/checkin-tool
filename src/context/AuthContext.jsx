@@ -12,8 +12,9 @@ import {
 
 const AuthContext = createContext(null)
 
-/** 圈子人数上限（与数据库 enforce_profile_limit() 中的 max_users 保持一致） */
-const MAX_USERS = 2
+/** 圈子人数上限（与数据库 enforce_profile_limit() 中的 max_users 保持一致）
+ *  2026-11-16 起用户要求不限制：置为极大占位值，机制保留、随时可改小恢复限制 */
+const MAX_USERS = 999999
 
 /**
  * 获取真实注册人数
