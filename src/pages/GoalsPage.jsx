@@ -30,6 +30,8 @@ function GoalsPage() {
   const [editingGoal, setEditingGoal] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [finishTarget, setFinishTarget] = useState(null)
+  const [finishing, setFinishing] = useState(false)
   const [toast, setToast] = useState('')
 
   const showToast = (msg) => {
@@ -194,6 +196,54 @@ function GoalsPage() {
     setDeleteTarget(goal)
   }
 
+  /** 手动完成/结束：弹选择层 */
+  const handleFinish = (goal) => {
+    if (user?.id !== goal.user_id) {
+      showToast('仅创建者可操作该目标')
+      return
+    }
+    setFinishTarget(goal)
+  }
+
+  /** 选择层确认：completed=标记为已完成，expired=提前结束 */
+  const confirmFinish = async (nextStatus) => {
+    if (!finishTarget || finishing) return
+    setFinishing(true)
+    try {
+      const { error } = await withTimeoutToast(supabase
+        .from('goals')
+        .update({ status: nextStatus })
+        .eq('id', finishTarget.id))
+      if (error) throw error
+      setFinishTarget(null)
+      showToast(nextStatus === 'completed' ? '已标记为已完成' : '已提前结束')
+      fetchData()
+    } catch {
+      showToast('操作失败，请重试')
+    } finally {
+      setFinishing(false)
+    }
+  }
+
+  /** 终态恢复为进行中：恢复后由系统按实际打卡数据重新自动判定 */
+  const handleRestart = async (goal) => {
+    if (user?.id !== goal.user_id) {
+      showToast('仅创建者可操作该目标')
+      return
+    }
+    try {
+      const { error } = await withTimeoutToast(supabase
+        .from('goals')
+        .update({ status: 'active' })
+        .eq('id', goal.id))
+      if (error) throw error
+      showToast('已恢复为进行中')
+      fetchData()
+    } catch {
+      showToast('操作失败，请重试')
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deleteTarget || deleting) return
     setDeleting(true)
@@ -258,6 +308,8 @@ function GoalsPage() {
         relatedCategories={relatedCategories}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onFinish={handleFinish}
+        onRestart={handleRestart}
         isOwner={user?.id === goal.user_id}
         creatorUsername={usernameMap[goal.user_id] || '未知用户'}
       />
@@ -380,6 +432,53 @@ function GoalsPage() {
                 }`}
               >
                 {deleting ? '删除中…' : '删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 完成/结束选择弹窗 */}
+      {finishTarget && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center"
+          onClick={() => !finishing && setFinishTarget(null)}
+        >
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative z-10 mx-6 w-full max-w-xs rounded-2xl bg-white p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-center text-sm font-medium text-ink-900">
+              结束目标「{finishTarget.title}」？
+            </p>
+            <p className="mt-1 text-center text-xs text-ink-400">
+              结束后目标不再参与打卡统计，可随时「重新开始」
+            </p>
+            <div className="mt-5 space-y-2">
+              <button
+                type="button"
+                onClick={() => confirmFinish('completed')}
+                disabled={finishing}
+                className="w-full rounded-lg bg-primary-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-60"
+              >
+                {finishing ? '处理中…' : '标记为已完成'}
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmFinish('expired')}
+                disabled={finishing}
+                className="w-full rounded-lg border border-red-200 bg-white py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 disabled:opacity-60"
+              >
+                提前结束（不再进行）
+              </button>
+              <button
+                type="button"
+                onClick={() => setFinishTarget(null)}
+                disabled={finishing}
+                className="w-full rounded-lg border border-primary-200 bg-white py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-primary-50"
+              >
+                取消
               </button>
             </div>
           </div>

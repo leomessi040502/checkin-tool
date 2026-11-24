@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Pencil, Pin, Target, Trash2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Flag, Pencil, Pin, RotateCcw, Target, Trash2, XCircle } from 'lucide-react'
 import { formatChineseDate, getDaysRemaining } from '../utils/date'
 
 const TYPE_LABELS = {
@@ -12,7 +12,7 @@ const STATUS_STYLES = {
   expired: { label: '已过期', bg: 'bg-red-50', text: 'text-red-500' },
 }
 
-function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUsername, todayCompleted = 0, todayTotal = 0, relatedCategories = [] }) {
+function GoalCard({ goal, currentCount, onEdit, onDelete, onFinish, onRestart, isOwner, creatorUsername, todayCompleted = 0, todayTotal = 0, relatedCategories = [] }) {
   const typeLabel = TYPE_LABELS[goal.type] || goal.type
   const statusStyle = STATUS_STYLES[goal.status] || STATUS_STYLES.active
   const isDimmed = goal.status === 'completed' || goal.status === 'expired'
@@ -130,7 +130,7 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
       </div>
 
       {/* 底部：日期 + 状态 + 操作 */}
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-y-1">
         <div className="flex items-center gap-2">
           {goal.end_date && (
             <span className="text-xs text-ink-400">
@@ -151,7 +151,24 @@ function GoalCard({ goal, currentCount, onEdit, onDelete, isOwner, creatorUserna
           </span>
         </div>
         {isOwner && (
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
+            {goal.status === 'active' ? (
+              <button
+                onClick={() => onFinish(goal)}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 transition-colors hover:bg-primary-50 hover:text-primary-600"
+              >
+                <Flag size={12} />
+                完成/结束
+              </button>
+            ) : (
+              <button
+                onClick={() => onRestart(goal)}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 transition-colors hover:bg-primary-50 hover:text-primary-600"
+              >
+                <RotateCcw size={12} />
+                重新开始
+              </button>
+            )}
             <button
               onClick={() => onEdit(goal)}
               className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-400 transition-colors hover:bg-primary-50 hover:text-primary-600"
