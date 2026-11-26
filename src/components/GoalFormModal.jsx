@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { withTimeoutToast } from '../utils/apiWrapper'
 import { getTodayStr, formatChineseDate } from '../utils/date'
 import DatePickerModal from './DatePickerModal'
+import { showToast } from './Toast'
 
 const TYPES = [
   { key: 'periodic', label: '周期目标' },
@@ -31,6 +32,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [datePickerTarget, setDatePickerTarget] = useState(null) // 'start' | 'end' | null
+  const [createTodo, setCreateTodo] = useState(true) // 新增模式：同步生成一条待办
 
   const today = getTodayStr()
 
@@ -60,6 +62,7 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
         setTargetCount('')
         setStartDate(today)
         setEndDate('')
+        setCreateTodo(true)
       }
       setError('')
       setSubmitting(false)
@@ -201,9 +204,11 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
       )
       const rpcMissing = rpcError?.code === 'PGRST202' || rpcError?.code === '42883'
 
-      if (!rpcError) {
-        onSuccess()
-      } else if (rpcMissing) {
+      if (rpcError && !rpcMissing) {
+        throw rpcError
+      }
+
+      if (rpcMissing) {
         // 迁移 011 未执行：降级为差集增删，尽量缩小失败窗口
         const { data: existing } = await withTimeoutToast(supabase
           .from('goal_categories')
@@ -227,10 +232,27 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
             .insert(toAdd.map((catId) => ({ goal_id: goalId, category_id: catId }))))
           if (addErr) throw addErr
         }
-        onSuccess()
-      } else {
-        throw rpcError
       }
+
+      // 新增模式勾选「同步生成待办」：目标已完整创建后插入一条关联待办。
+      // 待办插入失败不回滚目标（目标本身已成功），只提示用户可稍后手动关联。
+      if (!isEdit && createTodo) {
+        const { error: todoErr } = await withTimeoutToast(supabase
+          .from('todos')
+          .insert({
+            user_id: currentUserId,
+            title: payload.title,
+            priority: 2,
+            is_public: false,
+            due_date: payload.end_date,
+            goal_id: goalId,
+          }))
+        if (todoErr) {
+          showToast('目标已创建，但待办生成失败，可稍后在待办中手动关联', 'info')
+        }
+      }
+
+      onSuccess()
     } catch {
       // 新建目标时若关联写入失败，删掉刚创建的目标，避免留下无分类的孤儿目标
       if (!isEdit && goalId) {
@@ -414,6 +436,25 @@ function GoalFormModal({ isOpen, onClose, onSuccess, initialData, currentUserId 
                 : '长期目标：目标次数和截止日期均可不填'}
             </p>
           </div>
+
+          {/* 同步生成待办（仅新增模式） */}
+          {!isEdit && (
+            <label className="flex items-center justify-between rounded-lg border border-primary-200 px-3 py-3">
+              <span>
+                <span className="text-sm font-medium text-ink-900">同步生成一条待办</span>
+                <span className="mt-0.5 block text-xs text-ink-400">
+                  目标完成/提前结束/重新开始时，这条待办自动同步状态
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={createTodo}
+                onChange={(e) => setCreateTodo(e.target.checked)}
+                aria-label="同步生成待办"
+                className="h-4 w-4 shrink-0 accent-primary-600"
+              />
+            </label>
+          )}
 
           {/* 错误提示 */}
           {error && <p className="text-center text-sm text-red-500">{error}</p>}

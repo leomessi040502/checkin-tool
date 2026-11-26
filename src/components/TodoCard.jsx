@@ -65,6 +65,14 @@ function TodoCard({ item, currentUserId, onToggle, onOpen }) {
           {!isMine && (
             <span className="shrink-0 text-xs text-ink-400">来自 {item.creator_username || '对方'}</span>
           )}
+          {item.goal && (
+            <span
+              className="ml-auto shrink-0 max-w-[40%] truncate rounded-full bg-primary-50 px-2 py-0.5 text-xs text-primary-600"
+              title={`关联目标：${item.goal.title}`}
+            >
+              🎯 {item.goal.title}
+            </span>
+          )}
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-xs">
           {item.due_date && (

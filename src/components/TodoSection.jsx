@@ -37,7 +37,8 @@ function TodoSection() {
     setLoading(true)
     try {
       const [todosRes, profilesRes] = await Promise.all([
-        withTimeoutToast(supabase.from('todos').select('*')),
+        // goal:goals(...) 嵌套取关联目标标题（一对一嵌入）；012 未执行时该查询报错走降级
+        withTimeoutToast(supabase.from('todos').select('*, goal:goals(id, title)')),
         withTimeoutToast(supabase.from('profiles').select('id, username')),
       ])
 
@@ -161,7 +162,7 @@ function TodoSection() {
       ) : loadError ? (
         <div className="py-6 text-center text-sm text-ink-400">
           <p>待办数据加载失败</p>
-          <p className="mt-1 text-xs">若持续出现，请确认数据库已执行 010 迁移</p>
+          <p className="mt-1 text-xs">若持续出现，请确认数据库已执行 010 / 012 迁移</p>
         </div>
       ) : (
         <div className="space-y-2.5">

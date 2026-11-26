@@ -22,6 +22,8 @@ function TodoFormModal({ open, onClose, onSuccess, initialData, currentUserId })
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState(2)
   const [isPublic, setIsPublic] = useState(false)
+  const [goalId, setGoalId] = useState('') // 关联目标（可选）
+  const [goalOptions, setGoalOptions] = useState([]) // 自己的进行中目标 + 编辑时已关联的目标
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [datePickerOpen, setDatePickerOpen] = useState(false)
@@ -35,10 +37,32 @@ function TodoFormModal({ open, onClose, onSuccess, initialData, currentUserId })
       setDueDate(initialData?.due_date || '')
       setPriority(initialData?.priority ?? 2)
       setIsPublic(initialData?.is_public ?? false)
+      setGoalId(initialData?.goal_id || '')
       setError('')
       setDatePickerOpen(false)
+      // 加载自己「进行中」的目标供关联；012 未执行（无 goal_id 列）时静默降级为不显示
+      if (currentUserId) {
+        withTimeoutToast(supabase
+          .from('goals')
+          .select('id, title')
+          .eq('user_id', currentUserId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false }))
+          .then(({ data, error: goalErr }) => {
+            if (goalErr) {
+              setGoalOptions(initialData?.goal ? [initialData.goal] : [])
+              return
+            }
+            const opts = data || []
+            // 编辑时若已关联的目标已不在进行中列表，补充进去避免关联被静默清掉
+            const linked = initialData?.goal
+            if (linked && !opts.some((g) => g.id === linked.id)) opts.unshift(linked)
+            setGoalOptions(opts)
+          })
+          .catch(() => setGoalOptions(initialData?.goal ? [initialData.goal] : []))
+      }
     }
-  }, [open, initialData])
+  }, [open, initialData, currentUserId])
 
   if (!open) return null
 
@@ -60,6 +84,7 @@ function TodoFormModal({ open, onClose, onSuccess, initialData, currentUserId })
       due_date: dueDate || null,
       priority,
       is_public: isPublic,
+      goal_id: goalId || null,
     }
 
     try {
@@ -184,6 +209,30 @@ function TodoFormModal({ open, onClose, onSuccess, initialData, currentUserId })
                 ))}
               </div>
             </div>
+
+            {/* 关联目标（可选）：目标完成/结束时待办自动同步状态 */}
+            {goalOptions.length > 0 && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ink-600">
+                  关联目标 <span className="font-normal text-ink-400">（可选）</span>
+                </label>
+                <select
+                  value={goalId}
+                  onChange={(e) => setGoalId(e.target.value)}
+                  className="w-full rounded-lg border border-primary-200 bg-white px-3 py-2.5 text-sm text-ink-600 outline-none transition-colors focus:border-primary-500"
+                >
+                  <option value="">不关联</option>
+                  {goalOptions.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-ink-400">
+                  仅可关联自己创建的进行中目标
+                </p>
+              </div>
+            )}
 
             {/* 公开/私密 */}
             <div className="flex items-center justify-between rounded-lg border border-primary-200 px-3 py-3">
